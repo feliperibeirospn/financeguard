@@ -78,4 +78,4 @@ React, Vite, Tailwind CSS, Lucide React, Recharts, Capacitor.
 ---
 
 ## 📜 Histórico
-- `app_de_produ_o.legacy.tsx` — arquivo monolítico original mantido para referência histórica de evolução da arquitetura.
+- `legacy/app_de_produ_o.legacy.tsx` — arquivo monolítico original mantido para referência histórica de evolução da arquitetura.

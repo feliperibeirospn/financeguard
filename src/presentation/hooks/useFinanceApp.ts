@@ -161,7 +161,7 @@ export const useFinanceApp = () => {
         // Delega ao use case puro do Domain
         const { parcelamento, parcelas } = generateInstallments({
           descricao: description,
-          valorTotal: Math.abs(parsedAmount),
+          valorTotal: finalAmount,
           qtdParcelas: installments,
           categoriaId: category,
           dataInicio: date,

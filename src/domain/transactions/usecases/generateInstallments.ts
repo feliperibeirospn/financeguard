@@ -10,9 +10,9 @@ export interface GenerateInstallmentsInput {
   /** Descrição original (ex.: "Notebook Dell") */
   descricao: string;
   /**
-   * Valor absoluto da compra (sempre positivo).
-   * O sinal (negativo para despesa, positivo para receita) é controlado
-   * pelo chamador em `valorParcela`.
+   * Valor da compra.
+   *  - positivo para receitas (raro em parcelamento, mas suportado)
+   *  - negativo para despesas
    */
   valorTotal: number;
   /** Quantidade de parcelas (1 = à vista) */
@@ -74,7 +74,7 @@ export const generateInstallments = (
     id: parcelamentoId,
     id_remoto: generateUUID(),
     descricao,
-    valor_total: valorTotal,
+    valor_total: Math.abs(valorTotal),
     qtd_parcelas: qtdParcelas,
     atualizado_em: timestamp,
     status_sincronismo: statusSincronismo,

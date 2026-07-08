@@ -93,6 +93,11 @@ O APK estará disponível em: `android/app/build/outputs/apk/debug/app-debug.apk
 ## ⚖️ Licença e Soberania
 Este projeto foi desenvolvido com foco em transparência técnica. Todo o estado é persistido em `localStorage` (simulando um SQLite local) para garantir que o usuário tenha **Soberania de Dados**.
 
+dashboard
+<img width="1889" height="891" alt="image" src="https://github.com/user-attachments/assets/09095657-0e5e-4716-b44a-52bdaa9b95fb" />
+
+
+
 ---
 
 ## 📜 Histórico

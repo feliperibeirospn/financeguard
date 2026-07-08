@@ -1,8 +1,4 @@
-/**
- * Tipos de aba da aplicação. Centraliza o contrato para TabNav
- * e para o switch do `useFinanceApp`.
- */
-export type TabId = 'dashboard' | 'transacoes' | 'sqlite' | 'architecture';
+export type TabId = 'dashboard' | 'transacoes' | 'sqlite' | 'architecture' | 'admin';
 
 export interface TabConfig {
   id: TabId;
@@ -12,6 +8,7 @@ export interface TabConfig {
 export const TABS: TabConfig[] = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'transacoes', label: 'Extrato' },
-  { id: 'sqlite', label: 'Inspetor SQLite' },
-  { id: 'architecture', label: 'Clean Arch Logs' },
+  { id: 'admin', label: 'Ajustes' },
+  { id: 'sqlite', label: 'DB' },
+  { id: 'architecture', label: 'Logs' },
 ];

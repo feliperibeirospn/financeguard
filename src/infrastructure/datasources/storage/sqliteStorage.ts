@@ -15,6 +15,9 @@ export interface SqliteDatabase {
   categorias: typeof INITIAL_CATEGORIES;
   parcelamentos: Parcelamento[];
   transacoes: Transacao[];
+  config: {
+    savingsTargetPct: number;
+  };
 }
 
 const STORAGE_KEY = 'sqlite_simulation_db';
@@ -57,6 +60,9 @@ export const getDefaultSeed = (): SqliteDatabase => {
         status_sincronismo: 'SINCRONIZADO',
       },
     ],
+    config: {
+      savingsTargetPct: 20,
+    },
   };
 };
 

@@ -13,22 +13,16 @@ import {
 import type { TabId } from '../components/ui/tabs';
 
 const MAX_LOGS = 50;
-const SAVINGS_TARGET_PCT = 20;
-const CATEGORY_RECEITA = 'cat_receita';
-const CATEGORY_ESSENCIAL = 'cat_essencial';
-const CATEGORY_LAZER = 'cat_lazer';
-const CATEGORY_INVESTIMENTO = 'cat_investimento';
-const PAYMENT_CARTAO = 'cartao';
 
 export interface FinanceSummary {
   income: number;
   expenses: number;
-  essencial: number;
-  estiloVida: number;
   investimento: number;
   creditCard: number;
   netBalance: number;
   savingsRate: number;
+  // Detalhes por categoria dinâmica
+  byCategory: Record<string, number>;
 }
 
 export interface ChartDatum {
@@ -103,40 +97,44 @@ export const useFinanceApp = () => {
   const summary: FinanceSummary = useMemo(() => {
     let income = 0;
     let expenses = 0;
-    let essencial = 0;
-    let estiloVida = 0;
     let investimento = 0;
     let creditCard = 0;
+    const byCategory: Record<string, number> = {};
 
     for (const t of filteredTransactions) {
-      const val = parseFloat(String(t.valor));
-      if (t.categoria_id === CATEGORY_RECEITA) {
+      const val = Math.abs(parseFloat(String(t.valor)));
+      const cat = db.categorias.find((c) => c.id === t.categoria_id);
+
+      if (!cat) continue;
+
+      if (!byCategory[t.categoria_id]) byCategory[t.categoria_id] = 0;
+      byCategory[t.categoria_id] += val;
+
+      if (cat.type === 'income') {
         income += val;
       } else {
-        const abs = Math.abs(val);
-        expenses += abs;
-        if (t.categoria_id === CATEGORY_ESSENCIAL) essencial += abs;
-        if (t.categoria_id === CATEGORY_LAZER) estiloVida += abs;
-        if (t.categoria_id === CATEGORY_INVESTIMENTO) investimento += abs;
-        if (t.forma_pagamento === PAYMENT_CARTAO) creditCard += abs;
+        expenses += val;
+        if (cat.type === 'investment') investimento += val;
+        if (t.forma_pagamento === 'cartao') creditCard += val;
       }
     }
 
     const netBalance = income - expenses;
     const savingsRate = income > 0 ? (investimento / income) * 100 : 0;
 
-    return { income, expenses, essencial, estiloVida, investimento, creditCard, netBalance, savingsRate };
-  }, [filteredTransactions]);
+    return { income, expenses, investimento, creditCard, netBalance, savingsRate, byCategory };
+  }, [filteredTransactions, db.categorias]);
 
-  const chartData: ChartDatum[] = useMemo(
-    () =>
-      [
-        { name: 'Essencial', value: summary.essencial, fill: '#3b82f6' },
-        { name: 'Estilo de Vida', value: summary.estiloVida, fill: '#f59e0b' },
-        { name: 'Investido', value: summary.investimento, fill: '#10b981' },
-      ].filter((d) => d.value > 0),
-    [summary],
-  );
+  const chartData: ChartDatum[] = useMemo(() => {
+    return db.categorias
+      .filter((c) => c.type !== 'income')
+      .map((c) => ({
+        name: c.name,
+        value: summary.byCategory[c.id] || 0,
+        fill: c.color,
+      }))
+      .filter((d) => d.value > 0);
+  }, [summary.byCategory, db.categorias]);
 
   // ---------- Ações ----------
   const handleAddTransaction = useCallback(
@@ -145,9 +143,10 @@ export const useFinanceApp = () => {
 
       addLog('PRESENTATION (UI)', `Usuário submeteu formulário: "${description}"`);
 
+      const cat = db.categorias.find(c => c.id === category);
+      const isIncome = cat?.type === 'income';
       const parsedAmount = amount;
-      const finalAmount =
-        category === CATEGORY_RECEITA ? Math.abs(parsedAmount) : -Math.abs(parsedAmount);
+      const finalAmount = isIncome ? Math.abs(parsedAmount) : -Math.abs(parsedAmount);
       const newTxId = `t_${Date.now()}`;
       const syncStatus: Transacao['status_sincronismo'] = isOnline ? 'SINCRONIZADO' : 'PENDENTE';
       const now = Date.now();
@@ -157,7 +156,7 @@ export const useFinanceApp = () => {
         `Validando transação e executando motor de parcelamento. Parcelas: ${installments}`,
       );
 
-      if (paymentMethod === PAYMENT_CARTAO && installments > 1) {
+      if (paymentMethod === 'cartao' && installments > 1) {
         // Delega ao use case puro do Domain
         const { parcelamento, parcelas } = generateInstallments({
           descricao: description,
@@ -288,13 +287,22 @@ export const useFinanceApp = () => {
     filteredTransactions,
     summary,
     chartData,
-    savingsTargetPct: SAVINGS_TARGET_PCT,
+    savingsTargetPct: db.config?.savingsTargetPct ?? 20,
     // ações
     handleAddTransaction,
     handleDeleteTransaction,
     handleSyncData,
     handleExportCSV,
     handleToggleOnline,
+    // Configurações
+    handleUpdateSavingsTarget: (pct: number) => {
+      setDb(prev => ({ ...prev, config: { ...prev.config, savingsTargetPct: pct } }));
+      addLog('DOMAIN', `Meta de poupança atualizada para ${pct}%`);
+    },
+    handleUpdateCategories: (categories: typeof db.categorias) => {
+      setDb(prev => ({ ...prev, categorias: categories }));
+      addLog('DOMAIN', 'Lista de categorias atualizada.');
+    }
   };
 };
 

@@ -8,6 +8,7 @@ import { DashboardPage } from './presentation/pages/dashboard/Dashboard';
 import { ExtratoPage } from './presentation/pages/extrato/Extrato';
 import { InspectorSQLitePage } from './presentation/pages/inspector-sqlite/InspectorSQLite';
 import { CleanArchLogsPage } from './presentation/pages/clean-arch-logs/CleanArchLogs';
+import { AdminPage } from './presentation/pages/admin/Admin';
 
 export default function App() {
   const {
@@ -32,6 +33,8 @@ export default function App() {
     handleSyncData,
     handleExportCSV,
     handleToggleOnline,
+    handleUpdateSavingsTarget,
+    handleUpdateCategories,
   } = useFinanceApp();
 
   const renderActiveTab = () => {
@@ -50,6 +53,15 @@ export default function App() {
             filteredTransactions={filteredTransactions}
             selectedMonth={selectedMonth}
             onDelete={handleDeleteTransaction}
+          />
+        );
+      case 'admin':
+        return (
+          <AdminPage
+            savingsTargetPct={savingsTargetPct}
+            categories={db.categorias}
+            onUpdateSavingsTarget={handleUpdateSavingsTarget}
+            onUpdateCategories={handleUpdateCategories}
           />
         );
       case 'sqlite':
@@ -113,6 +125,7 @@ export default function App() {
               <NewTransactionForm
                 onSubmit={handleAddTransaction}
                 onClose={() => setIsFormOpen(false)}
+                categories={db.categorias}
               />
             </div>
           )}

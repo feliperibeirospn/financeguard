@@ -2,7 +2,7 @@
 
 > **Offline-First** · **Clean Architecture** · **Privacidade Absoluta**
 
-[![Download APK](https://img.shields.io/badge/Download-APK%20Android-brightgreen?style=for-the-badge&logo=android)](SUA_URL_DA_RELEASE_AQUI)
+[![Download APK](https://img.shields.io/badge/Download-APK%20Android-brightgreen?style=for-the-badge&logo=android)](https://github.com/feliperibeirospn/financeguard/releases/tag/v1.0.0)
 
 Aplicativo de finanças pessoais com persistência local simulando SQLCipher, motor de parcelamento puro, e telemetria de arquitetura em tempo real. Desenvolvido com React + Vite e portado para Android via Capacitor.
 

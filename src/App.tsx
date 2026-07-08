@@ -9,14 +9,6 @@ import { ExtratoPage } from './presentation/pages/extrato/Extrato';
 import { InspectorSQLitePage } from './presentation/pages/inspector-sqlite/InspectorSQLite';
 import { CleanArchLogsPage } from './presentation/pages/clean-arch-logs/CleanArchLogs';
 
-/**
- * Componente raiz da aplicação.
- *
- * Responsabilidade: layout + roteamento entre abas.
- * Toda a lógica de estado, persistência e side effects vive em `useFinanceApp`.
- * Toda a regra de negócio vive em `src/domain/`.
- * Todo o I/O externo (localStorage, CSV) vive em `src/infrastructure/`.
- */
 export default function App() {
   const {
     activeTab,
@@ -68,7 +60,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       <StatusBar
         isOnline={isOnline}
         isEncrypted={isEncrypted}
@@ -76,20 +68,23 @@ export default function App() {
         onSync={handleSyncData}
       />
 
-      <div className="max-w-6xl w-full mx-auto p-4 md:p-8 flex-1 flex flex-col">
-        <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-2">
-              <Wallet className="text-indigo-500 size-8" /> FinanceGuard Pro
+      <main className="max-w-6xl w-full mx-auto p-6 md:p-12 flex-1 flex flex-col gap-10">
+        <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+          <div className="space-y-1">
+            <h1 className="text-3xl md:text-4xl font-black tracking-tighter flex items-center gap-3">
+              <div className="p-2 bg-indigo-600 rounded-2xl shadow-xl shadow-indigo-900/40">
+                <Wallet className="text-white size-7 md:size-8" />
+              </div>
+              <span className="gradient-text">FinanceGuard Pro</span>
             </h1>
-            <p className="text-slate-400 text-xs md:text-sm">
-              Offline-First | Privacidade Absoluta
+            <p className="text-slate-500 text-sm font-medium ml-14">
+              Arquitetura Limpa • <span className="text-slate-400">Privacidade Absoluta</span>
             </p>
           </div>
           <TabNav activeTab={activeTab} onChange={setActiveTab} />
         </header>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-slate-950/50 p-3 rounded-2xl border border-slate-800/80">
+        <div className="glass-panel p-4 rounded-[2.5rem] flex flex-wrap items-center justify-between gap-4">
           <MonthYearPicker
             month={selectedMonth}
             year={selectedYear}
@@ -99,33 +94,38 @@ export default function App() {
             }}
           />
 
-          <div className="flex gap-2">
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold uppercase transition-all"
-            >
-              <Download className="size-4" /> Exportar CSV
+          <div className="flex gap-3">
+            <button onClick={handleExportCSV} className="btn-secondary flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider">
+              <Download className="size-4" /> Exportar
             </button>
             <button
               onClick={() => setIsFormOpen((v) => !v)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold uppercase transition-all"
+              className="btn-primary flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider"
             >
               <PlusCircle className="size-4" /> Novo Lançamento
             </button>
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col gap-6">
+        <div className="flex-1">
           {isFormOpen && (
-            <NewTransactionForm
-              onSubmit={handleAddTransaction}
-              onClose={() => setIsFormOpen(false)}
-            />
+            <div className="mb-10 animate-in zoom-in-95 duration-300">
+              <NewTransactionForm
+                onSubmit={handleAddTransaction}
+                onClose={() => setIsFormOpen(false)}
+              />
+            </div>
           )}
 
-          {renderActiveTab()}
+          <section className="min-h-[400px]">
+            {renderActiveTab()}
+          </section>
         </div>
-      </div>
+      </main>
+
+      <footer className="p-8 text-center text-slate-600 text-[10px] font-bold uppercase tracking-[0.4em]">
+        &copy; 2026 FinanceGuard • Versão 1.0.0-Stable
+      </footer>
     </div>
   );
 }

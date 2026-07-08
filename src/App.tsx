@@ -9,6 +9,7 @@ import { ExtratoPage } from './presentation/pages/extrato/Extrato';
 import { InspectorSQLitePage } from './presentation/pages/inspector-sqlite/InspectorSQLite';
 import { CleanArchLogsPage } from './presentation/pages/clean-arch-logs/CleanArchLogs';
 import { AdminPage } from './presentation/pages/admin/Admin';
+import { MobileMenu } from './presentation/components/ui/navigation/MobileMenu';
 
 export default function App() {
   const {
@@ -93,7 +94,12 @@ export default function App() {
               Arquitetura Limpa • <span className="text-slate-400">Privacidade Absoluta</span>
             </p>
           </div>
-          <TabNav activeTab={activeTab} onChange={setActiveTab} />
+
+          <div className="hidden lg:block">
+            <TabNav activeTab={activeTab} onChange={setActiveTab} />
+          </div>
+
+          <MobileMenu activeTab={activeTab} onChange={setActiveTab} />
         </header>
 
         <div className="glass-panel p-4 rounded-[2.5rem] flex flex-wrap items-center justify-between gap-4">

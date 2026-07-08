@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react';
-import { PlusCircle, X } from 'lucide-center-react'; // Note: Lucide React might be different in your setup, keep consistency
 import { X as XIcon, PlusCircle as PlusIcon } from 'lucide-react';
 import { PAYMENT_METHODS } from '../../../domain/shared/paymentMethods';
 import type { Category } from '../../../domain/categories/entities/categories';

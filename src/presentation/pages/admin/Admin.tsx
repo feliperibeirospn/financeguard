@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Settings, Plus, Trash2, Save, Target, Tag } from 'lucide-react';
 import type { Category, CategoryType } from '../../../domain/categories/entities/categories';
-import { generateUUID } from '../../../domain/shared/generateUUID';
 
 interface AdminPageProps {
   savingsTargetPct: number;

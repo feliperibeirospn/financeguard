@@ -207,7 +207,7 @@ export const useFinanceApp = () => {
       addLog('PRESENTATION (UI)', 'Interface atualizada e sincronizada com banco SQLite local.');
       setIsFormOpen(false);
     },
-    [addLog, isEncrypted, isOnline],
+    [addLog, isEncrypted, isOnline, db.categorias],
   );
 
   const handleDeleteTransaction = useCallback(
@@ -294,6 +294,11 @@ export const useFinanceApp = () => {
     handleSyncData,
     handleExportCSV,
     handleToggleOnline,
+    handleResetDatabase: () => {
+      const seed = getDefaultSeed();
+      setDb(seed);
+      addLog('INFRASTRUCTURE', 'Banco de dados resetado para o estado inicial.');
+    },
     // Configurações
     handleUpdateSavingsTarget: (pct: number) => {
       setDb(prev => ({ ...prev, config: { ...prev.config, savingsTargetPct: pct } }));

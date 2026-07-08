@@ -34,6 +34,7 @@ export default function App() {
     handleSyncData,
     handleExportCSV,
     handleToggleOnline,
+    handleResetDatabase,
     handleUpdateSavingsTarget,
     handleUpdateCategories,
   } = useFinanceApp();
@@ -63,6 +64,7 @@ export default function App() {
             categories={db.categorias}
             onUpdateSavingsTarget={handleUpdateSavingsTarget}
             onUpdateCategories={handleUpdateCategories}
+            onResetDatabase={handleResetDatabase}
           />
         );
       case 'sqlite':

@@ -7,6 +7,7 @@ interface AdminPageProps {
   categories: Category[];
   onUpdateSavingsTarget: (pct: number) => void;
   onUpdateCategories: (categories: Category[]) => void;
+  onResetDatabase: () => void;
 }
 
 export const AdminPage = ({
@@ -14,6 +15,7 @@ export const AdminPage = ({
   categories,
   onUpdateSavingsTarget,
   onUpdateCategories,
+  onResetDatabase,
 }: AdminPageProps) => {
   const [newTarget, setNewTarget] = useState(savingsTargetPct);
   const [editingCategory, setEditingCategory] = useState<Partial<Category> | null>(null);
@@ -78,6 +80,32 @@ export const AdminPage = ({
               className="btn-primary w-full py-3 rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
             >
               <Save className="size-4" /> Salvar Meta
+            </button>
+          </div>
+        </section>
+
+        {/* Perigo / Reset */}
+        <section className="glass-card p-8 rounded-[2.5rem] border-rose-500/20 space-y-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-rose-500/20 rounded-xl">
+              <Trash2 className="text-rose-400 size-5" />
+            </div>
+            <h3 className="font-black text-white text-lg tracking-tight">Zona de Perigo</h3>
+          </div>
+
+          <div className="space-y-4">
+            <p className="text-sm text-slate-400 font-medium">
+              Apaga todos os seus lançamentos e restaura as configurações originais de fábrica.
+            </p>
+            <button
+              onClick={() => {
+                if(confirm("ATENÇÃO: Isso apagará TODOS os seus dados permanentemente. Deseja continuar?")) {
+                  onResetDatabase();
+                }
+              }}
+              className="w-full py-3 rounded-2xl text-xs font-black uppercase tracking-[0.2em] border border-rose-500/30 text-rose-400 hover:bg-rose-500 hover:text-white transition-all duration-300"
+            >
+              Resetar Banco de Dados
             </button>
           </div>
         </section>

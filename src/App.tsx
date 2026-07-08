@@ -143,7 +143,7 @@ export default function App() {
       </main>
 
       <footer className="p-8 text-center text-slate-600 text-[10px] font-bold uppercase tracking-[0.4em]">
-        &copy; 2026 FinanceGuard • Versão 1.0.0-Stable
+        &copy; 2026 FinanceGuard • Versão 1.2.0-Stable
       </footer>
     </div>
   );

@@ -93,7 +93,7 @@ export const MobileMenu = ({ activeTab, onChange }: MobileMenuProps) => {
           <div className="absolute bottom-8 left-8 right-8">
             <div className="p-6 bg-white/5 rounded-[2rem] border border-white/5">
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Status</p>
-              <p className="text-xs text-indigo-400 font-bold">Versão 1.0.0 Stable</p>
+              <p className="text-xs text-indigo-400 font-bold">Versão 1.2.0 Stable</p>
             </div>
           </div>
         </div>

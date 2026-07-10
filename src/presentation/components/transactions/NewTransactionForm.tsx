@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { X as XIcon, PlusCircle as PlusIcon } from 'lucide-react';
+import { X as XIcon, PlusCircle as PlusIcon, Sparkles, Mic, Loader2 } from 'lucide-react';
 import { PAYMENT_METHODS } from '../../../domain/shared/paymentMethods';
 import type { Category } from '../../../domain/categories/entities/categories';
 
@@ -16,15 +16,65 @@ interface NewTransactionFormProps {
   onSubmit: (payload: NewTransactionFormPayload) => void;
   onClose: () => void;
   categories: Category[];
+  onProcessAICommand: (text: string) => Promise<any>;
 }
 
-export const NewTransactionForm = ({ onSubmit, onClose, categories }: NewTransactionFormProps) => {
+export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAICommand }: NewTransactionFormProps) => {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState(categories[0]?.id || '');
   const [paymentMethod, setPaymentMethod] = useState('dinheiro');
   const [installments, setInstallments] = useState(1);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // IA States
+  const [aiText, setAiText] = useState('');
+  const [isAIProcessing, setIsAIProcessing] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+
+  const handleAIProcess = async () => {
+    if (!aiText.trim()) return;
+    setIsAIProcessing(true);
+    try {
+      const data = await onProcessAICommand(aiText);
+      if (data) {
+        setDescription(data.descricao || description);
+        setAmount(String(data.amount) || amount);
+        setCategory(data.category || category);
+        setPaymentMethod(data.paymentMethod || paymentMethod);
+        setInstallments(data.installments || installments);
+        setDate(data.date || date);
+        setAiText(''); // Limpa após processar
+      }
+    } catch (err: any) {
+      alert(err.message || 'Erro ao processar comando IA');
+    } finally {
+      setIsAIProcessing(false);
+    }
+  };
+
+  const handleVoiceInput = () => {
+    // @ts-ignore
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Seu navegador não suporta reconhecimento de voz.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.start();
+    setIsListening(true);
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setAiText(transcript);
+      setIsListening(false);
+    };
+
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -58,6 +108,51 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories }: NewTransac
           <XIcon className="size-5" />
         </button>
       </div>
+
+      <div className="mb-6 space-y-3">
+        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 block">
+          Entrada Mágica (IA)
+        </label>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Ex: 'Gastei 50 no BK hoje'"
+              value={aiText}
+              onChange={(e) => setAiText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAIProcess()}
+              className="w-full bg-indigo-500/5 border border-indigo-500/20 p-4 pl-12 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm transition-all placeholder:text-indigo-300/30"
+            />
+            <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-indigo-500/50" />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleVoiceInput}
+            className={`p-4 rounded-2xl border transition-all ${
+              isListening
+                ? 'bg-rose-500/20 border-rose-500 text-rose-500 animate-pulse'
+                : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20'
+            }`}
+          >
+            <Mic className="size-5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAIProcess}
+            disabled={isAIProcessing || !aiText.trim()}
+            className="btn-primary px-6 rounded-2xl flex items-center justify-center disabled:opacity-50"
+          >
+            {isAIProcessing ? <Loader2 className="size-5 animate-spin" /> : 'Processar'}
+          </button>
+        </div>
+        <p className="text-[9px] text-slate-500 font-medium px-2">
+          Fale ou digite naturalmente. A IA preencherá o formulário para você conferir.
+        </p>
+      </div>
+
+      <div className="h-px bg-white/5 mb-6" />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

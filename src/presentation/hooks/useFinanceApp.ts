@@ -9,6 +9,7 @@ import {
   getDefaultSeed,
   exportTransactionsToCSV,
   type SqliteDatabase,
+  type AIProvider,
 } from '../../infrastructure/datasources/storage';
 import type { TabId } from '../components/ui/tabs';
 
@@ -43,9 +44,6 @@ export interface NewTransactionInput {
 /**
  * Hook raiz da aplicação. Concentra todo o estado de UI e a ponte
  * com o Domain (use cases) e a Infrastructure (storage, CSV).
- *
- * Retorna um objeto "facade" — a `App.tsx` consome sem precisar
- * conhecer useState, useEffect, ou a forma do banco.
  */
 export const useFinanceApp = () => {
   // ---------- Infra / sync ----------
@@ -157,7 +155,6 @@ export const useFinanceApp = () => {
       );
 
       if (paymentMethod === 'cartao' && installments > 1) {
-        // Delega ao use case puro do Domain
         const { parcelamento, parcelas } = generateInstallments({
           descricao: description,
           valorTotal: finalAmount,
@@ -172,10 +169,6 @@ export const useFinanceApp = () => {
         addLog(
           'DATA (REPOSITORIES)',
           `Criando Compra Mãe no repositório de parcelamentos. UUID: ${parcelamento.id_remoto}`,
-        );
-        addLog(
-          'DOMAIN',
-          `Motor de parcelamento dividiu R$ ${Math.abs(parsedAmount)} em ${installments}x de R$ ${(Math.abs(parsedAmount) / installments).toFixed(2)}`,
         );
 
         setDb((prev) => ({
@@ -200,20 +193,15 @@ export const useFinanceApp = () => {
         setDb((prev) => ({ ...prev, transacoes: [tx, ...prev.transacoes] }));
       }
 
-      addLog(
-        'INFRASTRUCTURE',
-        `Gravando em lote na tabela transacoes com cifragem AES-256 ativa: ${isEncrypted}`,
-      );
       addLog('PRESENTATION (UI)', 'Interface atualizada e sincronizada com banco SQLite local.');
       setIsFormOpen(false);
     },
-    [addLog, isEncrypted, isOnline, db.categorias],
+    [addLog, isOnline, db.categorias],
   );
 
   const handleDeleteTransaction = useCallback(
     (id: string) => {
       addLog('PRESENTATION (UI)', `Solicitação para remover transação ${id}`);
-      addLog('INFRASTRUCTURE', `Executando DELETE FROM transacoes WHERE id = '${id}'`);
       setDb((prev) => ({ ...prev, transacoes: prev.transacoes.filter((t) => t.id !== id) }));
       addLog('DOMAIN', 'Saldos locais recalculados com sucesso.');
     },
@@ -227,49 +215,121 @@ export const useFinanceApp = () => {
     }
     addLog('DOMAIN', 'Iniciando varredura de registros com status_sincronismo = "PENDENTE"');
 
-    const pendentesT = db.transacoes.filter((t) => t.status_sincronismo === 'PENDENTE').length;
-    const pendentesP = db.parcelamentos.filter((p) => p.status_sincronismo === 'PENDENTE').length;
-    if (pendentesT === 0 && pendentesP === 0) {
-      addLog('DATA (REPOSITORIES)', 'Tudo limpo. Nenhum dado pendente de sincronização encontrado.');
-      return;
-    }
-
-    addLog(
-      'INFRASTRUCTURE',
-      `Compactando payload de sincronismo (${pendentesT + pendentesP} itens) via HTTPS POST para o Append-Only Log...`,
-    );
-
-    // Simula latência de rede — espelha o setTimeout(800) do original
     setTimeout(() => {
       setDb((prev) => ({
         ...prev,
         transacoes: prev.transacoes.map((t) => ({ ...t, status_sincronismo: 'SINCRONIZADO' })),
         parcelamentos: prev.parcelamentos.map((p) => ({ ...p, status_sincronismo: 'SINCRONIZADO' })),
       }));
-      addLog(
-        'INFRASTRUCTURE',
-        'Sincronização concluída com sucesso. Resiliência de rede confirmada (Idempotência garantida via id_remoto UUID).',
-      );
+      addLog('INFRASTRUCTURE', 'Sincronização concluída com sucesso.');
     }, 800);
-  }, [addLog, db.parcelamentos, db.transacoes, isOnline]);
+  }, [addLog, isOnline]);
 
   const handleExportCSV = useCallback(() => {
-    addLog('DOMAIN', 'Iniciando rotina de exportação de dados para portabilidade do usuário.');
-    addLog('INFRASTRUCTURE', 'Lendo e descriptografando tabelas transacoes e parcelamentos...');
+    addLog('DOMAIN', 'Iniciando rotina de exportação de dados.');
     exportTransactionsToCSV(db.transacoes);
-    addLog('INFRASTRUCTURE', 'Arquivo de exportação gerado com sucesso em formato padrão CSV.');
+    addLog('INFRASTRUCTURE', 'Arquivo de exportação gerado com sucesso.');
   }, [addLog, db.transacoes]);
 
   const handleToggleOnline = useCallback(() => {
     setIsOnline((prev) => {
       const next = !prev;
-      addLog('INFRASTRUCTURE', `Status de conexão de rede alterado para: ${next ? 'ONLINE' : 'OFFLINE'}`);
+      addLog('INFRASTRUCTURE', `Status de conexão alterado para: ${next ? 'ONLINE' : 'OFFLINE'}`);
       return next;
     });
   }, [addLog]);
 
+  // ---------- IA Logic ----------
+  const handleProcessAICommand = async (text: string) => {
+    const config = db.config?.aiConfig;
+    if (!config || !config.apiKey) {
+      addLog('PRESENTATION (UI)', 'Erro: Chave de API de IA não configurada.');
+      throw new Error('Configure sua API Key nos Ajustes.');
+    }
+
+    addLog('DOMAIN', `Processando comando IA via ${config.provider.toUpperCase()}...`);
+
+    const categoriesPrompt = db.categorias
+      .map(c => `ID: ${c.id}, Nome: ${c.name}, Tipo: ${c.type}`)
+      .join('\n');
+
+    const systemPrompt = `Você é um extrator de dados financeiros.
+O usuário possui estas categorias:
+${categoriesPrompt}
+
+Com base na frase do usuário, extraia:
+1. descricao (String amigável)
+2. amount (Number positivo)
+3. category (O ID da categoria que melhor se encaixa)
+4. paymentMethod ('dinheiro' ou 'cartao')
+5. installments (Número de parcelas, default 1)
+6. date (ISO date YYYY-MM-DD, hoje é ${new Date().toISOString().split('T')[0]})
+
+Responda APENAS um objeto JSON puro.`;
+
+    try {
+      let response;
+      if (config.provider === 'groq') {
+        response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: text }
+            ],
+            response_format: { type: 'json_object' }
+          })
+        });
+      } else if (config.provider === 'deepseek') {
+        response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: text }
+            ],
+            response_format: { type: 'json_object' }
+          })
+        });
+      } else {
+        // Gemini
+        response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: `${systemPrompt}\n\nUsuário disse: ${text}` }] }],
+            generationConfig: { responseMimeType: 'application/json' }
+          })
+        });
+      }
+
+      const data = await response.json();
+      let content;
+      if (config.provider === 'gemini') {
+        content = data.candidates[0].content.parts[0].text;
+      } else {
+        content = data.choices[0].message.content;
+      }
+
+      addLog('DOMAIN', 'IA interpretou o comando com sucesso.');
+      return JSON.parse(content);
+    } catch (err) {
+      addLog('INFRASTRUCTURE', 'Falha na comunicação com o provedor de IA.');
+      throw err;
+    }
+  };
+
   return {
-    // estado de UI
     activeTab,
     setActiveTab,
     selectedMonth,
@@ -278,35 +338,40 @@ export const useFinanceApp = () => {
     setSelectedYear,
     isFormOpen,
     setIsFormOpen,
-    // infra
     isOnline,
     isEncrypted,
     logs,
-    // dados derivados
     db,
     filteredTransactions,
     summary,
     chartData,
     savingsTargetPct: db.config?.savingsTargetPct ?? 20,
-    // ações
+    aiConfig: db.config?.aiConfig,
     handleAddTransaction,
     handleDeleteTransaction,
     handleSyncData,
     handleExportCSV,
     handleToggleOnline,
+    handleProcessAICommand,
+    handleUpdateAIConfig: (provider: AIProvider, apiKey: string) => {
+      setDb(prev => ({
+        ...prev,
+        config: { ...prev.config, aiConfig: { provider, apiKey } }
+      }));
+      addLog('DOMAIN', `Configuração de IA atualizada: ${provider.toUpperCase()}`);
+    },
     handleResetDatabase: () => {
       const seed = getDefaultSeed();
       setDb(seed);
-      addLog('INFRASTRUCTURE', 'Banco de dados resetado para o estado inicial.');
+      addLog('INFRASTRUCTURE', 'Banco de dados resetado.');
     },
-    // Configurações
     handleUpdateSavingsTarget: (pct: number) => {
       setDb(prev => ({ ...prev, config: { ...prev.config, savingsTargetPct: pct } }));
-      addLog('DOMAIN', `Meta de poupança atualizada para ${pct}%`);
+      addLog('DOMAIN', `Meta de poupança: ${pct}%`);
     },
     handleUpdateCategories: (categories: typeof db.categorias) => {
       setDb(prev => ({ ...prev, categorias: categories }));
-      addLog('DOMAIN', 'Lista de categorias atualizada.');
+      addLog('DOMAIN', 'Categorias atualizadas.');
     }
   };
 };

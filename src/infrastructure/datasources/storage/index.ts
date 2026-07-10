@@ -4,6 +4,6 @@
  *   import { loadDb, saveDb, exportTransactionsToCSV } from '@/infrastructure/datasources/storage';
  */
 
-export type { SqliteDatabase } from './sqliteStorage';
+export type { SqliteDatabase, AIProvider } from './sqliteStorage';
 export { loadDb, saveDb, clearDb, getDefaultSeed } from './sqliteStorage';
 export { buildTransactionsCsv, exportTransactionsToCSV } from './csvExporter';

@@ -1,24 +1,33 @@
 import { useState } from 'react';
-import { Settings, Plus, Trash2, Save, Target, Tag } from 'lucide-react';
+import { Settings, Plus, Trash2, Save, Target, Tag, Sparkles, Key } from 'lucide-react';
 import type { Category, CategoryType } from '../../../domain/categories/entities/categories';
+import type { AIProvider } from '../../../infrastructure/datasources/storage/sqliteStorage';
 
 interface AdminPageProps {
   savingsTargetPct: number;
   categories: Category[];
+  aiConfig?: { provider: AIProvider, apiKey: string };
   onUpdateSavingsTarget: (pct: number) => void;
   onUpdateCategories: (categories: Category[]) => void;
+  onUpdateAIConfig: (provider: AIProvider, apiKey: string) => void;
   onResetDatabase: () => void;
 }
 
 export const AdminPage = ({
   savingsTargetPct,
   categories,
+  aiConfig,
   onUpdateSavingsTarget,
   onUpdateCategories,
+  onUpdateAIConfig,
   onResetDatabase,
 }: AdminPageProps) => {
   const [newTarget, setNewTarget] = useState(savingsTargetPct);
   const [editingCategory, setEditingCategory] = useState<Partial<Category> | null>(null);
+
+  // IA States
+  const [aiProvider, setAiProvider] = useState<AIProvider>(aiConfig?.provider || 'groq');
+  const [aiKey, setAiKey] = useState(aiConfig?.apiKey || '');
 
   const handleAddCategory = () => {
     setEditingCategory({
@@ -80,6 +89,52 @@ export const AdminPage = ({
               className="btn-primary w-full py-3 rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
             >
               <Save className="size-4" /> Salvar Meta
+            </button>
+          </div>
+        </section>
+
+        {/* Inteligência Artificial */}
+        <section className="glass-card p-8 rounded-[2.5rem] space-y-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-violet-500/20 rounded-xl">
+              <Sparkles className="text-violet-400 size-5" />
+            </div>
+            <h3 className="font-black text-white text-lg tracking-tight">Inteligência Artificial</h3>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Provedor</label>
+              <select
+                value={aiProvider}
+                onChange={(e) => setAiProvider(e.target.value as AIProvider)}
+                className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none"
+              >
+                <option value="groq">Groq (Recomendado - Grátis & Rápido)</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="deepseek">DeepSeek</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">API Key</label>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={aiKey}
+                  placeholder="Sua chave de API..."
+                  onChange={(e) => setAiKey(e.target.value)}
+                  className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-3 pl-11 text-white focus:outline-none focus:border-violet-500 transition-colors"
+                />
+                <Key className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
+              </div>
+            </div>
+
+            <button
+              onClick={() => onUpdateAIConfig(aiProvider, aiKey)}
+              className="w-full py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-violet-900/20"
+            >
+              <Save className="size-4" /> Salvar Configuração de IA
             </button>
           </div>
         </section>

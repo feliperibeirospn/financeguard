@@ -34,6 +34,8 @@ export default function App() {
     handleSyncData,
     handleExportCSV,
     handleToggleOnline,
+    handleProcessAICommand,
+    handleUpdateAIConfig,
     handleResetDatabase,
     handleUpdateSavingsTarget,
     handleUpdateCategories,
@@ -62,8 +64,10 @@ export default function App() {
           <AdminPage
             savingsTargetPct={savingsTargetPct}
             categories={db.categorias}
+            aiConfig={db.config?.aiConfig}
             onUpdateSavingsTarget={handleUpdateSavingsTarget}
             onUpdateCategories={handleUpdateCategories}
+            onUpdateAIConfig={handleUpdateAIConfig}
             onResetDatabase={handleResetDatabase}
           />
         );
@@ -134,6 +138,7 @@ export default function App() {
                 onSubmit={handleAddTransaction}
                 onClose={() => setIsFormOpen(false)}
                 categories={db.categorias}
+                onProcessAICommand={handleProcessAICommand}
               />
             </div>
           )}

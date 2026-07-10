@@ -11,12 +11,18 @@ import { generateUUID } from '../../../domain/shared/generateUUID';
  * via `@op-engineering/op-sqlite` ou similar — o contrato de tipos
  * permaneceria idêntico.
  */
+export type AIProvider = 'groq' | 'gemini' | 'deepseek';
+
 export interface SqliteDatabase {
   categorias: typeof INITIAL_CATEGORIES;
   parcelamentos: Parcelamento[];
   transacoes: Transacao[];
   config: {
     savingsTargetPct: number;
+    aiConfig?: {
+      provider: AIProvider;
+      apiKey: string;
+    };
   };
 }
 

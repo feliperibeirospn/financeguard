@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, useEffect, useRef } from 'react';
 import { X as XIcon, PlusCircle as PlusIcon, Sparkles, Mic, Loader2 } from 'lucide-react';
 import { PAYMENT_METHODS } from '../../../domain/shared/paymentMethods';
 import type { Category } from '../../../domain/categories/entities/categories';
@@ -32,6 +32,74 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
   const [isAIProcessing, setIsAIProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
 
+  // Voice Recognition Ref
+  const recognitionRef = useRef<any>(null);
+
+  const initRecognition = () => {
+    // @ts-ignore
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return null;
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = false; // Importante para mobile: parar após a frase
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      console.log('Microfone ativado...');
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setAiText(transcript);
+      console.log('Texto capturado:', transcript);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Erro no reconhecimento:', event.error);
+      setIsListening(false);
+      if (event.error === 'not-allowed') {
+        alert('Permissão de microfone negada.');
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      console.log('Microfone desligado.');
+    };
+
+    return recognition;
+  };
+
+  const handleVoiceInput = () => {
+    // No Mobile/WebView, é melhor recriar a instância no clique para garantir permissões
+    if (isListening) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      return;
+    }
+
+    const rec = initRecognition();
+    if (!rec) {
+      alert('Reconhecimento de voz não suportado neste dispositivo.');
+      return;
+    }
+
+    recognitionRef.current = rec;
+    try {
+      rec.start();
+    } catch (err) {
+      console.error('Falha ao iniciar:', err);
+      setIsListening(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) recognitionRef.current.stop();
+    };
+  }, []);
+
   const handleAIProcess = async () => {
     if (!aiText.trim()) return;
     setIsAIProcessing(true);
@@ -44,36 +112,13 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
         setPaymentMethod(data.paymentMethod || paymentMethod);
         setInstallments(data.installments || installments);
         setDate(data.date || date);
-        setAiText(''); // Limpa após processar
+        setAiText('');
       }
     } catch (err: any) {
       alert(err.message || 'Erro ao processar comando IA');
     } finally {
       setIsAIProcessing(false);
     }
-  };
-
-  const handleVoiceInput = () => {
-    // @ts-ignore
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('Seu navegador não suporta reconhecimento de voz.');
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'pt-BR';
-    recognition.start();
-    setIsListening(true);
-
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setAiText(transcript);
-      setIsListening(false);
-    };
-
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -103,7 +148,7 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
         </h3>
         <button
           onClick={onClose}
-          className="p-2 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-colors"
+          className="p-2 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-all"
         >
           <XIcon className="size-5" />
         </button>
@@ -117,11 +162,13 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
           <div className="relative flex-1">
             <input
               type="text"
-              placeholder="Ex: 'Gastei 50 no BK hoje'"
+              placeholder={isListening ? "Ouvindo... Pode falar!" : "Ex: 'Gastei 50 no BK hoje'"}
               value={aiText}
               onChange={(e) => setAiText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAIProcess()}
-              className="w-full bg-indigo-500/5 border border-indigo-500/20 p-4 pl-12 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm transition-all placeholder:text-indigo-300/30"
+              className={`w-full bg-indigo-500/5 border p-4 pl-12 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm transition-all placeholder:text-indigo-300/30 ${
+                isListening ? 'border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.2)]' : 'border-indigo-500/20'
+              }`}
             />
             <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-indigo-500/50" />
           </div>
@@ -148,7 +195,7 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
           </button>
         </div>
         <p className="text-[9px] text-slate-500 font-medium px-2">
-          Fale ou digite naturalmente. A IA preencherá o formulário para você conferir.
+          {isListening ? "Estou te ouvindo agora..." : "Clique no microfone e diga o que gastou."}
         </p>
       </div>
 

@@ -19,5 +19,8 @@ dist-ssr
 # OS
 Thumbs.db
 
+# Project Artifacts (Internal)
+.artifacts/
+
 # TypeScript
 *.tsbuildinfo

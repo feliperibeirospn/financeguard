@@ -25,6 +25,10 @@ O **FinanceGuard Pro** não é apenas mais um gerenciador financeiro. Ele foi pr
 ## 🚀 Funcionalidades Principais
 
 - [x] **Dashboard Inteligente**: KPIs de Receitas, Despesas e Balanço em tempo real.
+- [x] **Entrada Mágica com IA**:
+    - Suporte a **Groq**, **Gemini** e **DeepSeek**.
+    - Reconhecimento de Voz (Speech-to-Text) para lançamentos ultra-rápidos.
+    - Processamento de Linguagem Natural (NLP) para preenchimento automático de formulários.
 - [x] **Gestão de Lançamentos**: Cadastro de gastos e ganhos com suporte a parcelamento automático.
 - [x] **Motor de Parcelamento**: Divide compras no cartão automaticamente pelos meses futuros.
 - [x] **Painel Administrativo**:

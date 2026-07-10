@@ -10,6 +10,7 @@ import { InspectorSQLitePage } from './presentation/pages/inspector-sqlite/Inspe
 import { CleanArchLogsPage } from './presentation/pages/clean-arch-logs/CleanArchLogs';
 import { AdminPage } from './presentation/pages/admin/Admin';
 import { MobileMenu } from './presentation/components/ui/navigation/MobileMenu';
+import { Toast } from './presentation/components/ui/feedback/Toast';
 
 export default function App() {
   const {
@@ -29,6 +30,7 @@ export default function App() {
     summary,
     chartData,
     savingsTargetPct,
+    toast,
     handleAddTransaction,
     handleDeleteTransaction,
     handleSyncData,
@@ -152,6 +154,8 @@ export default function App() {
       <footer className="p-8 text-center text-slate-600 text-[10px] font-bold uppercase tracking-[0.4em]">
         &copy; 2026 FinanceGuard • Versão 1.2.0-Stable
       </footer>
+
+      <Toast {...toast} />
     </div>
   );
 }

@@ -22,7 +22,6 @@ export interface FinanceSummary {
   creditCard: number;
   netBalance: number;
   savingsRate: number;
-  // Detalhes por categoria dinâmica
   byCategory: Record<string, number>;
 }
 
@@ -41,9 +40,15 @@ export interface NewTransactionInput {
   date: string;
 }
 
+export interface ToastState {
+  message: string;
+  type: 'success' | 'error';
+  visible: boolean;
+}
+
 /**
  * Hook raiz da aplicação. Concentra todo o estado de UI e a ponte
- * com o Domain (use cases) e a Infrastructure (storage, CSV).
+ * com o Domain e a Infrastructure.
  */
 export const useFinanceApp = () => {
   // ---------- Infra / sync ----------
@@ -64,19 +69,25 @@ export const useFinanceApp = () => {
 
   // ---------- Banco simulado ----------
   const [db, setDb] = useState<SqliteDatabase>(() => loadDb() ?? getDefaultSeed());
+  const [toast, setToast] = useState<ToastState>({ message: '', type: 'success', visible: false });
 
   // Persistência automática sempre que o banco muda
   useEffect(() => {
     saveDb(db);
   }, [db]);
 
-  // ---------- UI ----------
+  // ---------- UI State ----------
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   // ---------- Helpers ----------
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type, visible: true });
+    setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
+  }, []);
+
   const addLog = useCallback((layer: LogLayer, message: string) => {
     setLogs((prev) => [
       { timestamp: new Date().toLocaleTimeString(), layer, message },
@@ -102,9 +113,7 @@ export const useFinanceApp = () => {
     for (const t of filteredTransactions) {
       const val = Math.abs(parseFloat(String(t.valor)));
       const cat = db.categorias.find((c) => c.id === t.categoria_id);
-
       if (!cat) continue;
-
       if (!byCategory[t.categoria_id]) byCategory[t.categoria_id] = 0;
       byCategory[t.categoria_id] += val;
 
@@ -116,10 +125,8 @@ export const useFinanceApp = () => {
         if (t.forma_pagamento === 'cartao') creditCard += val;
       }
     }
-
     const netBalance = income - expenses;
     const savingsRate = income > 0 ? (investimento / income) * 100 : 0;
-
     return { income, expenses, investimento, creditCard, netBalance, savingsRate, byCategory };
   }, [filteredTransactions, db.categorias]);
 
@@ -137,241 +144,148 @@ export const useFinanceApp = () => {
   // ---------- Ações ----------
   const handleAddTransaction = useCallback(
     (input: NewTransactionInput) => {
-      const { description, amount, category, paymentMethod, installments, date } = input;
+      try {
+        const { description, amount, category, paymentMethod, installments, date } = input;
+        const cat = db.categorias.find(c => c.id === category);
+        const isIncome = cat?.type === 'income';
+        const finalAmount = isIncome ? Math.abs(amount) : -Math.abs(amount);
+        const newTxId = `t_${Date.now()}`;
+        const syncStatus: Transacao['status_sincronismo'] = isOnline ? 'SINCRONIZADO' : 'PENDENTE';
+        const now = Date.now();
 
-      addLog('PRESENTATION (UI)', `Usuário submeteu formulário: "${description}"`);
-
-      const cat = db.categorias.find(c => c.id === category);
-      const isIncome = cat?.type === 'income';
-      const parsedAmount = amount;
-      const finalAmount = isIncome ? Math.abs(parsedAmount) : -Math.abs(parsedAmount);
-      const newTxId = `t_${Date.now()}`;
-      const syncStatus: Transacao['status_sincronismo'] = isOnline ? 'SINCRONIZADO' : 'PENDENTE';
-      const now = Date.now();
-
-      addLog(
-        'DOMAIN',
-        `Validando transação e executando motor de parcelamento. Parcelas: ${installments}`,
-      );
-
-      if (paymentMethod === 'cartao' && installments > 1) {
-        const { parcelamento, parcelas } = generateInstallments({
-          descricao: description,
-          valorTotal: finalAmount,
-          qtdParcelas: installments,
-          categoriaId: category,
-          dataInicio: date,
-          statusSincronismo: syncStatus,
-          timestamp: now,
-          idPrefix: newTxId,
-        });
-
-        addLog(
-          'DATA (REPOSITORIES)',
-          `Criando Compra Mãe no repositório de parcelamentos. UUID: ${parcelamento.id_remoto}`,
-        );
-
-        setDb((prev) => ({
-          ...prev,
-          parcelamentos: [...prev.parcelamentos, parcelamento],
-          transacoes: [...parcelas, ...prev.transacoes],
-        }));
-      } else {
-        addLog('DATA (REPOSITORIES)', 'Processando transação à vista.');
-        const tx: Transacao = {
-          id: newTxId,
-          id_remoto: generateUUID(),
-          descricao: description,
-          valor: finalAmount,
-          categoria_id: category,
-          data: date,
-          forma_pagamento: paymentMethod as Transacao['forma_pagamento'],
-          parcelamento_id: null,
-          atualizado_em: now,
-          status_sincronismo: syncStatus,
-        };
-        setDb((prev) => ({ ...prev, transacoes: [tx, ...prev.transacoes] }));
+        if (paymentMethod === 'cartao' && installments > 1) {
+          const { parcelamento, parcelas } = generateInstallments({
+            descricao: description,
+            valorTotal: finalAmount,
+            qtdParcelas: installments,
+            categoriaId: category,
+            dataInicio: date,
+            statusSincronismo: syncStatus,
+            timestamp: now,
+            idPrefix: newTxId,
+          });
+          setDb((prev) => ({
+            ...prev,
+            parcelamentos: [...prev.parcelamentos, parcelamento],
+            transacoes: [...parcelas, ...prev.transacoes],
+          }));
+        } else {
+          const tx: Transacao = {
+            id: newTxId,
+            id_remoto: generateUUID(),
+            descricao: description,
+            valor: finalAmount,
+            categoria_id: category,
+            data: date,
+            forma_pagamento: paymentMethod as Transacao['forma_pagamento'],
+            parcelamento_id: null,
+            atualizado_em: now,
+            status_sincronismo: syncStatus,
+          };
+          setDb((prev) => ({ ...prev, transacoes: [tx, ...prev.transacoes] }));
+        }
+        addLog('PRESENTATION (UI)', `Lançamento salvo: ${description}`);
+        showToast('Lançamento salvo com sucesso!', 'success');
+        setIsFormOpen(false);
+      } catch (err) {
+        addLog('INFRASTRUCTURE', 'Erro ao salvar transação.');
+        showToast('Erro ao salvar lançamento.', 'error');
       }
-
-      addLog('PRESENTATION (UI)', 'Interface atualizada e sincronizada com banco SQLite local.');
-      setIsFormOpen(false);
     },
-    [addLog, isOnline, db.categorias],
+    [db.categorias, isOnline, showToast, addLog]
   );
 
   const handleDeleteTransaction = useCallback(
     (id: string) => {
-      addLog('PRESENTATION (UI)', `Solicitação para remover transação ${id}`);
-      setDb((prev) => ({ ...prev, transacoes: prev.transacoes.filter((t) => t.id !== id) }));
-      addLog('DOMAIN', 'Saldos locais recalculados com sucesso.');
+      if (window.confirm('Deseja realmente excluir esta transação?')) {
+        addLog('INFRASTRUCTURE', `Deletando transação ID: ${id}`);
+        setDb((prev) => ({ ...prev, transacoes: prev.transacoes.filter((t) => t.id !== id) }));
+        showToast('Transação excluída.', 'success');
+      }
     },
-    [addLog],
+    [showToast, addLog]
   );
 
   const handleSyncData = useCallback(() => {
     if (!isOnline) {
-      addLog('INFRASTRUCTURE', 'Erro de sincronismo: Dispositivo desconectado.');
+      showToast('Offline: Sincronização pendente.', 'error');
       return;
     }
-    addLog('DOMAIN', 'Iniciando varredura de registros com status_sincronismo = "PENDENTE"');
-
     setTimeout(() => {
       setDb((prev) => ({
         ...prev,
         transacoes: prev.transacoes.map((t) => ({ ...t, status_sincronismo: 'SINCRONIZADO' })),
         parcelamentos: prev.parcelamentos.map((p) => ({ ...p, status_sincronismo: 'SINCRONIZADO' })),
       }));
-      addLog('INFRASTRUCTURE', 'Sincronização concluída com sucesso.');
+      showToast('Dados sincronizados!', 'success');
     }, 800);
-  }, [addLog, isOnline]);
+  }, [isOnline, showToast]);
 
   const handleExportCSV = useCallback(() => {
-    addLog('DOMAIN', 'Iniciando rotina de exportação de dados.');
     exportTransactionsToCSV(db.transacoes);
-    addLog('INFRASTRUCTURE', 'Arquivo de exportação gerado com sucesso.');
-  }, [addLog, db.transacoes]);
+    showToast('CSV Exportado!', 'success');
+  }, [db.transacoes, showToast]);
 
   const handleToggleOnline = useCallback(() => {
-    setIsOnline((prev) => {
-      const next = !prev;
-      addLog('INFRASTRUCTURE', `Status de conexão alterado para: ${next ? 'ONLINE' : 'OFFLINE'}`);
-      return next;
-    });
-  }, [addLog]);
+    setIsOnline((prev) => !prev);
+  }, []);
 
-  // ---------- IA Logic ----------
   const handleProcessAICommand = async (text: string) => {
     const config = db.config?.aiConfig;
-    if (!config || !config.apiKey) {
-      addLog('PRESENTATION (UI)', 'Erro: Chave de API de IA não configurada.');
-      throw new Error('Configure sua API Key nos Ajustes.');
-    }
-
-    addLog('DOMAIN', `Processando comando IA via ${config.provider.toUpperCase()}...`);
-
-    const categoriesPrompt = db.categorias
-      .map(c => `ID: ${c.id}, Nome: ${c.name}, Tipo: ${c.type}`)
-      .join('\n');
-
-    const systemPrompt = `Você é um extrator de dados financeiros.
-O usuário possui estas categorias:
-${categoriesPrompt}
-
-Com base na frase do usuário, extraia:
-1. descricao (String amigável)
-2. amount (Number positivo)
-3. category (O ID da categoria que melhor se encaixa)
-4. paymentMethod ('dinheiro' ou 'cartao')
-5. installments (Número de parcelas, default 1)
-6. date (ISO date YYYY-MM-DD, hoje é ${new Date().toISOString().split('T')[0]})
-
-Responda APENAS um objeto JSON puro.`;
-
+    if (!config || !config.apiKey) throw new Error('Configure sua API Key nos Ajustes.');
+    const categoriesPrompt = db.categorias.map(c => `ID: ${c.id}, Nome: ${c.name}, Tipo: ${c.type}`).join('\n');
+    const systemPrompt = `Você é um extrator de dados financeiros. Categorias:\n${categoriesPrompt}\nExtraia JSON: {descricao, amount, category, paymentMethod, installments, date}`;
     try {
       let response;
       if (config.provider === 'groq') {
         response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${config.apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: text }
-            ],
-            response_format: { type: 'json_object' }
-          })
+          headers: { 'Authorization': `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: text }], response_format: { type: 'json_object' } })
         });
       } else if (config.provider === 'deepseek') {
         response = await fetch('https://api.deepseek.com/v1/chat/completions', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${config.apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'deepseek-chat',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: text }
-            ],
-            response_format: { type: 'json_object' }
-          })
+          headers: { 'Authorization': `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: text }], response_format: { type: 'json_object' } })
         });
       } else {
-        // Gemini
         response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: `${systemPrompt}\n\nUsuário disse: ${text}` }] }],
-            generationConfig: { responseMimeType: 'application/json' }
-          })
+          body: JSON.stringify({ contents: [{ parts: [{ text: `${systemPrompt}\n\nUsuário disse: ${text}` }] }], generationConfig: { responseMimeType: 'application/json' } })
         });
       }
-
       const data = await response.json();
-      let content;
-      if (config.provider === 'gemini') {
-        content = data.candidates[0].content.parts[0].text;
-      } else {
-        content = data.choices[0].message.content;
-      }
-
-      addLog('DOMAIN', 'IA interpretou o comando com sucesso.');
+      const content = config.provider === 'gemini' ? data.candidates[0].content.parts[0].text : data.choices[0].message.content;
       return JSON.parse(content);
     } catch (err) {
-      addLog('INFRASTRUCTURE', 'Falha na comunicação com o provedor de IA.');
+      showToast('Erro na IA. Verifique sua chave.', 'error');
       throw err;
     }
   };
 
   return {
-    activeTab,
-    setActiveTab,
-    selectedMonth,
-    selectedYear,
-    setSelectedMonth,
-    setSelectedYear,
-    isFormOpen,
-    setIsFormOpen,
-    isOnline,
-    isEncrypted,
-    logs,
-    db,
-    filteredTransactions,
-    summary,
-    chartData,
+    activeTab, setActiveTab, selectedMonth, selectedYear, setSelectedMonth, setSelectedYear, isFormOpen, setIsFormOpen,
+    isOnline, isEncrypted, logs, db, filteredTransactions, summary, chartData, toast,
     savingsTargetPct: db.config?.savingsTargetPct ?? 20,
     aiConfig: db.config?.aiConfig,
-    handleAddTransaction,
-    handleDeleteTransaction,
-    handleSyncData,
-    handleExportCSV,
-    handleToggleOnline,
-    handleProcessAICommand,
+    handleAddTransaction, handleDeleteTransaction, handleSyncData, handleExportCSV, handleToggleOnline, handleProcessAICommand,
     handleUpdateAIConfig: (provider: AIProvider, apiKey: string) => {
-      setDb(prev => ({
-        ...prev,
-        config: { ...prev.config, aiConfig: { provider, apiKey } }
-      }));
-      addLog('DOMAIN', `Configuração de IA atualizada: ${provider.toUpperCase()}`);
+      setDb(prev => ({ ...prev, config: { ...prev.config, aiConfig: { provider, apiKey } } }));
+      showToast('Configuração IA salva!', 'success');
     },
     handleResetDatabase: () => {
-      const seed = getDefaultSeed();
-      setDb(seed);
-      addLog('INFRASTRUCTURE', 'Banco de dados resetado.');
+      setDb(getDefaultSeed());
+      showToast('Banco resetado.', 'success');
     },
     handleUpdateSavingsTarget: (pct: number) => {
       setDb(prev => ({ ...prev, config: { ...prev.config, savingsTargetPct: pct } }));
-      addLog('DOMAIN', `Meta de poupança: ${pct}%`);
+      showToast('Meta atualizada!', 'success');
     },
     handleUpdateCategories: (categories: typeof db.categorias) => {
       setDb(prev => ({ ...prev, categorias: categories }));
-      addLog('DOMAIN', 'Categorias atualizadas.');
+      showToast('Categorias salvas!', 'success');
     }
   };
 };

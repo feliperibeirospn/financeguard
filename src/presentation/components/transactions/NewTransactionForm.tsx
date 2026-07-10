@@ -1,5 +1,5 @@
 import { useState, type FormEvent, useEffect, useRef } from 'react';
-import { X as XIcon, PlusCircle as PlusIcon, Sparkles, Mic, Loader2 } from 'lucide-react';
+import { X as XIcon, PlusCircle as PlusIcon, Sparkles, Mic, Loader2, MicOff } from 'lucide-react';
 import { PAYMENT_METHODS } from '../../../domain/shared/paymentMethods';
 import type { Category } from '../../../domain/categories/entities/categories';
 
@@ -42,46 +42,58 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'pt-BR';
-    recognition.continuous = false; // Importante para mobile: parar após a frase
-    recognition.interimResults = false;
+
+    // Mudança estratégica: continuous=true permite que o usuário faça pausas maiores
+    // sem que o navegador feche o microfone automaticamente por silêncio curto.
+    recognition.continuous = true;
+    recognition.interimResults = true; // Permite ver o texto aparecendo enquanto fala
 
     recognition.onstart = () => {
       setIsListening(true);
-      console.log('Microfone ativado...');
+      console.log('Microfone ativado (Modo Contínuo)');
     };
 
     recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setAiText(transcript);
-      console.log('Texto capturado:', transcript);
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        }
+      }
+      if (finalTranscript) {
+        setAiText(prev => prev + ' ' + finalTranscript);
+      }
     };
 
     recognition.onerror = (event: any) => {
       console.error('Erro no reconhecimento:', event.error);
-      setIsListening(false);
-      if (event.error === 'not-allowed') {
-        alert('Permissão de microfone negada.');
+      if (event.error !== 'no-speech') {
+        setIsListening(false);
       }
     };
 
     recognition.onend = () => {
+      // No modo contínuo, só paramos se o usuário clicar no botão ou houver erro grave
       setIsListening(false);
-      console.log('Microfone desligado.');
+      console.log('Sessão de voz encerrada.');
     };
 
     return recognition;
   };
 
   const handleVoiceInput = () => {
-    // No Mobile/WebView, é melhor recriar a instância no clique para garantir permissões
     if (isListening) {
-      if (recognitionRef.current) recognitionRef.current.stop();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
       return;
     }
 
+    setAiText(''); // Limpa para nova gravação
     const rec = initRecognition();
     if (!rec) {
-      alert('Reconhecimento de voz não suportado neste dispositivo.');
+      alert('Reconhecimento de voz não suportado.');
       return;
     }
 
@@ -101,6 +113,12 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
   }, []);
 
   const handleAIProcess = async () => {
+    // Se ainda estiver ouvindo, para antes de processar
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+
     if (!aiText.trim()) return;
     setIsAIProcessing(true);
     try {
@@ -162,12 +180,12 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
           <div className="relative flex-1">
             <input
               type="text"
-              placeholder={isListening ? "Ouvindo... Pode falar!" : "Ex: 'Gastei 50 no BK hoje'"}
+              placeholder={isListening ? "Ouvindo... Clique no mic para parar" : "Ex: 'Gastei 50 no BK hoje'"}
               value={aiText}
               onChange={(e) => setAiText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAIProcess()}
               className={`w-full bg-indigo-500/5 border p-4 pl-12 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm transition-all placeholder:text-indigo-300/30 ${
-                isListening ? 'border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.2)]' : 'border-indigo-500/20'
+                isListening ? 'border-rose-500 ring-4 ring-rose-500/10' : 'border-indigo-500/20'
               }`}
             />
             <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-indigo-500/50" />
@@ -176,13 +194,14 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
           <button
             type="button"
             onClick={handleVoiceInput}
+            title={isListening ? "Parar de ouvir" : "Começar a falar"}
             className={`p-4 rounded-2xl border transition-all ${
               isListening
-                ? 'bg-rose-500/20 border-rose-500 text-rose-500 animate-pulse'
+                ? 'bg-rose-500 text-white border-rose-400 animate-pulse'
                 : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20'
             }`}
           >
-            <Mic className="size-5" />
+            {isListening ? <MicOff className="size-5" /> : <Mic className="size-5" />}
           </button>
 
           <button
@@ -195,7 +214,9 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
           </button>
         </div>
         <p className="text-[9px] text-slate-500 font-medium px-2">
-          {isListening ? "Estou te ouvindo agora..." : "Clique no microfone e diga o que gastou."}
+          {isListening
+            ? "O microfone continuará ativo até você clicar no botão vermelho de parar."
+            : "Fale calmamente. O sistema agora permite pausas maiores entre as palavras."}
         </p>
       </div>
 

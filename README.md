@@ -94,7 +94,7 @@ O APK estará disponível em: `android/app/build/outputs/apk/debug/app-debug.apk
 Este projeto foi desenvolvido com foco em transparência técnica. Todo o estado é persistido em `localStorage` (simulando um SQLite local) para garantir que o usuário tenha **Soberania de Dados**.
 
 dashboard
-<img width="1889" height="891" alt="image" src="https://github.com/user-attachments/assets/09095657-0e5e-4716-b44a-52bdaa9b95fb" />
+<img width="1901" height="888" alt="image" src="https://github.com/user-attachments/assets/c3082edf-c62e-47a3-9fbf-5ddff9e12ec2" />
 
 Extrato
 <img width="1903" height="825" alt="image" src="https://github.com/user-attachments/assets/9a2cadc8-ab64-4851-87dc-db6da1255045" />

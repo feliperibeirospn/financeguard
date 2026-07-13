@@ -28,6 +28,10 @@ O **FinanceGuard Pro** não é apenas mais um gerenciador financeiro. Ele foi pr
     - Suporte a **Groq (Llama 3)**, **Google Gemini** e **DeepSeek**.
     - Reconhecimento de Voz (Speech-to-Text) integrado.
     - NLP para extração automática de valor, categoria e data.
+- [x] **Consultoria Financeira Proativa (Insights)**:
+    - Assistente que analisa automaticamente seu balanço mensal.
+    - Fornece 3 dicas estratégicas diárias para otimizar seus gastos e bater metas.
+    - Sistema híbrido: Análise automática inteligente ou sob demanda (botão Refresh).
 - [x] **Dashboard de Alta Fidelidade**: KPIs dinâmicos e gráficos que se adaptam às suas categorias.
 - [x] **Gestão de Lançamentos**: Fluxo completo de receitas e despesas com validação de sinal automática.
 - [x] **Motor de Parcelamento**: Inteligência para dividir compras no cartão automaticamente pelos meses futuros.

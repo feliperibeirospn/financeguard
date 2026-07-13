@@ -31,12 +31,15 @@ export default function App() {
     chartData,
     savingsTargetPct,
     toast,
+    isAIAnalyzing,
+    aiInsights,
     handleAddTransaction,
     handleDeleteTransaction,
     handleSyncData,
     handleExportCSV,
     handleToggleOnline,
     handleProcessAICommand,
+    handleGenerateInsights,
     handleUpdateAIConfig,
     handleResetDatabase,
     handleUpdateSavingsTarget,
@@ -51,6 +54,9 @@ export default function App() {
             summary={summary}
             chartData={chartData}
             savingsTargetPct={savingsTargetPct}
+            aiInsights={aiInsights}
+            isAIAnalyzing={isAIAnalyzing}
+            onRefreshInsights={() => handleGenerateInsights(true)}
           />
         );
       case 'transacoes':

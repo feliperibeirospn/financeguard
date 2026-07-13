@@ -23,6 +23,10 @@ export interface SqliteDatabase {
       provider: AIProvider;
       apiKey: string;
     };
+    lastAIAnalysis?: {
+      date: string;
+      insights: string[];
+    };
   };
 }
 

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -10,6 +11,7 @@ import {
 } from 'recharts';
 import { ArrowDownCircle, ArrowUpCircle, CreditCard, DollarSign, PiggyBank } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
+import { AIInsights } from '../../components/ui/feedback/AIInsights';
 import { formatCurrency } from '../../utils/formatCurrency';
 import type { FinanceSummary, ChartDatum } from '../../hooks/useFinanceApp';
 
@@ -17,14 +19,37 @@ interface DashboardPageProps {
   summary: FinanceSummary;
   chartData: ChartDatum[];
   savingsTargetPct: number;
+  aiInsights: string[];
+  isAIAnalyzing: boolean;
+  onRefreshInsights: () => void;
 }
 
-export const DashboardPage = ({ summary, chartData, savingsTargetPct }: DashboardPageProps) => {
+export const DashboardPage = ({
+  summary,
+  chartData,
+  savingsTargetPct,
+  aiInsights,
+  isAIAnalyzing,
+  onRefreshInsights
+}: DashboardPageProps) => {
   const savingsPct = summary.savingsRate;
   const progress = Math.min(Math.round((savingsPct / savingsTargetPct) * 100), 100);
 
+  // Trigger automático ao abrir o dashboard (uma vez por dia via cache no hook)
+  useEffect(() => {
+    onRefreshInsights();
+  }, []);
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+      {/* Insights Inteligentes (Topo) */}
+      <AIInsights
+        insights={aiInsights}
+        isAnalyzing={isAIAnalyzing}
+        onRefresh={() => onRefreshInsights()}
+      />
+
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         <Card title="Receitas" value={formatCurrency(summary.income)} icon={<ArrowUpCircle className="text-emerald-400 size-5" />} color="text-emerald-50" />

@@ -1,46 +1,37 @@
-# Implementação de Inteligência Artificial (Fase 1: Entrada Inteligente)
+# Implementação de Insights Financeiros com IA (Fase 2)
 
-Adição de suporte a IA para processamento de linguagem natural (texto e áudio) para facilitar o lançamento de transações, mantendo a privacidade através do uso de chaves de API próprias do usuário.
+Adição de um assistente proativo que analisa os dados financeiros locais e fornece dicas estratégicas automáticas e sob demanda.
 
 ## User Review Required
 
-- **Provedores Suportados**: DeepSeek, Gemini e Groq.
-- **Privacidade**: As chaves de API são armazenadas apenas localmente no dispositivo.
-- **Fluxo**: A IA preenche o formulário e o usuário revisa antes de salvar.
+- **Frequência Automática**: A análise automática ocorrerá uma vez por dia ao abrir o Dashboard (para economizar API).
+- **Dados Enviados**: Apenas resumos numéricos por categoria são enviados para a IA (ex: "Lazer: R$ 500"), mantendo a privacidade das descrições das compras.
 
 ## Proposed Changes
 
 ### [Infraestrutura]
 
 #### [sqliteStorage.ts](file:///C:/Users/Usuario/Documents/PROJETO_FINANCAS/src/infrastructure/datasources/storage/sqliteStorage.ts)
-- Atualizar a interface `SqliteDatabase` para incluir `aiConfig`.
-- Atualizar `getDefaultSeed` com valores padrão para IA.
-
-### [Interface Admin]
-
-#### [Admin.tsx](file:///C:/Users/Usuario/Documents/PROJETO_FINANCAS/src/presentation/pages/admin/Admin.tsx)
-- Adicionar seção "Configurações de IA".
-- Campos para seleção de Provedor e input de API Key (tipo password).
+- Adicionar `lastAIAnalysis` e `lastAnalysisDate` ao objeto `config` para cache local.
 
 ### [Lógica Central]
 
 #### [useFinanceApp.ts](file:///C:/Users/Usuario/Documents/PROJETO_FINANCAS/src/presentation/hooks/useFinanceApp.ts)
-- Adicionar estados e handlers para `aiConfig`.
-- Implementar `handleProcessAICommand`: Função que orquestra a chamada para o provedor selecionado e retorna os dados estruturados.
+- Implementar `handleGenerateInsights`: Função que monta o cenário financeiro atual e solicita conselhos à IA.
+- Adicionar lógica de auto-trigger para o Dashboard.
 
-### [Formulário de Lançamento]
+### [Interface]
 
-#### [NewTransactionForm.tsx](file:///C:/Users/Usuario/Documents/PROJETO_FINANCAS/src/presentation/components/transactions/NewTransactionForm.tsx)
-- Adicionar campo "Entrada Rápida com IA" no topo do modal.
-- Adicionar botão de microfone (usando Web Speech API).
-- Lógica para preencher os campos do formulário com a resposta da IA.
+#### [NEW] [AIInsights.tsx](file:///C:/Users/Usuario/Documents/PROJETO_FINANCAS/src/presentation/components/ui/feedback/AIInsights.tsx)
+- Componente de exibição de cards de insight com visual glassmorphism.
+- Botão de "Analisar Agora".
+
+#### [Dashboard.tsx](file:///C:/Users/Usuario/Documents/PROJETO_FINANCAS/src/presentation/pages/dashboard/Dashboard.tsx)
+- Integrar o componente `AIInsights` no topo da página.
 
 ## Verification Plan
 
-### Automated Tests
-- `npm run typecheck` para garantir que as novas interfaces estão corretas.
-
 ### Manual Verification
-- Testar salvamento de chave no Admin.
-- Testar comando de texto (ex: "50 reais no BK") e verificar se o formulário preenche Categoria e Valor.
-- Testar comando de voz (clicar no microfone e falar).
+- Verificar se a análise aparece automaticamente ao abrir o app.
+- Testar o botão de análise manual.
+- Confirmar se as dicas mudam conforme os gastos são adicionados.

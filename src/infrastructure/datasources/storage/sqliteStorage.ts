@@ -27,6 +27,7 @@ export interface SqliteDatabase {
       date: string;
       insights: string[];
     };
+    aiManageCategories?: boolean;
   };
 }
 

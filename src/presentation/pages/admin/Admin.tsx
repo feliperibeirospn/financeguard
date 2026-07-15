@@ -7,9 +7,11 @@ interface AdminPageProps {
   savingsTargetPct: number;
   categories: Category[];
   aiConfig?: { provider: AIProvider, apiKey: string };
+  aiManageCategories: boolean;
   onUpdateSavingsTarget: (pct: number) => void;
   onUpdateCategories: (categories: Category[]) => void;
   onUpdateAIConfig: (provider: AIProvider, apiKey: string) => void;
+  onUpdateAIManageCategories: (active: boolean) => void;
   onResetDatabase: () => void;
 }
 
@@ -17,9 +19,11 @@ export const AdminPage = ({
   savingsTargetPct,
   categories,
   aiConfig,
+  aiManageCategories,
   onUpdateSavingsTarget,
   onUpdateCategories,
   onUpdateAIConfig,
+  onUpdateAIManageCategories,
   onResetDatabase,
 }: AdminPageProps) => {
   const [newTarget, setNewTarget] = useState(savingsTargetPct);
@@ -174,12 +178,25 @@ export const AdminPage = ({
               </div>
               <h3 className="font-black text-white text-lg tracking-tight">Categorias</h3>
             </div>
-            <button
-              onClick={handleAddCategory}
-              className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors"
-            >
-              <Plus className="size-5" />
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => onUpdateAIManageCategories(!aiManageCategories)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                  aiManageCategories
+                    ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30'
+                    : 'bg-slate-800 text-slate-500 border border-transparent'
+                }`}
+              >
+                <Sparkles className="size-3" />
+                IA Ativa
+              </button>
+              <button
+                onClick={handleAddCategory}
+                className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors"
+              >
+                <Plus className="size-5" />
+              </button>
+            </div>
           </div>
 
           <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">

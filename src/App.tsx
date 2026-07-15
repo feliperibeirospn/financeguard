@@ -33,6 +33,7 @@ export default function App() {
     toast,
     isAIAnalyzing,
     aiInsights,
+    aiManageCategories,
     handleAddTransaction,
     handleDeleteTransaction,
     handleSyncData,
@@ -41,6 +42,7 @@ export default function App() {
     handleProcessAICommand,
     handleGenerateInsights,
     handleUpdateAIConfig,
+    handleUpdateAIManageCategories,
     handleResetDatabase,
     handleUpdateSavingsTarget,
     handleUpdateCategories,
@@ -73,9 +75,11 @@ export default function App() {
             savingsTargetPct={savingsTargetPct}
             categories={db.categorias}
             aiConfig={db.config?.aiConfig}
+            aiManageCategories={aiManageCategories}
             onUpdateSavingsTarget={handleUpdateSavingsTarget}
             onUpdateCategories={handleUpdateCategories}
             onUpdateAIConfig={handleUpdateAIConfig}
+            onUpdateAIManageCategories={handleUpdateAIManageCategories}
             onResetDatabase={handleResetDatabase}
           />
         );

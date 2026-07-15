@@ -1,5 +1,5 @@
 import { useState, type FormEvent, useEffect, useRef } from 'react';
-import { X as XIcon, PlusCircle as PlusIcon, Sparkles, Mic, Loader2, MicOff } from 'lucide-react';
+import { X as XIcon, PlusCircle as PlusIcon, Sparkles, Mic, Loader2, MicOff, AlertCircle } from 'lucide-react';
 import { PAYMENT_METHODS } from '../../../domain/shared/paymentMethods';
 import type { Category } from '../../../domain/categories/entities/categories';
 
@@ -10,6 +10,7 @@ export interface NewTransactionFormPayload {
   paymentMethod: string;
   installments: number;
   date: string;
+  newCategory?: Category;
 }
 
 interface NewTransactionFormProps {
@@ -31,6 +32,7 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
   const [aiText, setAiText] = useState('');
   const [isAIProcessing, setIsAIProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [suggestedCategory, setSuggestedCategory] = useState<Category | null>(null);
 
   // Voice Recognition Ref
   const recognitionRef = useRef<any>(null);
@@ -42,78 +44,44 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'pt-BR';
-
-    // Mudança estratégica: continuous=true permite que o usuário faça pausas maiores
-    // sem que o navegador feche o microfone automaticamente por silêncio curto.
     recognition.continuous = true;
-    recognition.interimResults = true; // Permite ver o texto aparecendo enquanto fala
+    recognition.interimResults = true;
 
-    recognition.onstart = () => {
-      setIsListening(true);
-      console.log('Microfone ativado (Modo Contínuo)');
-    };
-
+    recognition.onstart = () => setIsListening(true);
     recognition.onresult = (event: any) => {
       let finalTranscript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        }
+        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
       }
-      if (finalTranscript) {
-        setAiText(prev => prev + ' ' + finalTranscript);
-      }
+      if (finalTranscript) setAiText(prev => prev + ' ' + finalTranscript);
     };
-
-    recognition.onerror = (event: any) => {
-      console.error('Erro no reconhecimento:', event.error);
-      if (event.error !== 'no-speech') {
-        setIsListening(false);
-      }
-    };
-
-    recognition.onend = () => {
-      // No modo contínuo, só paramos se o usuário clicar no botão ou houver erro grave
-      setIsListening(false);
-      console.log('Sessão de voz encerrada.');
-    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
 
     return recognition;
   };
 
   const handleVoiceInput = () => {
     if (isListening) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
+      if (recognitionRef.current) recognitionRef.current.stop();
       setIsListening(false);
       return;
     }
-
-    setAiText(''); // Limpa para nova gravação
+    setAiText('');
     const rec = initRecognition();
     if (!rec) {
-      alert('Reconhecimento de voz não suportado.');
+      alert('Reconhecimento não suportado.');
       return;
     }
-
     recognitionRef.current = rec;
-    try {
-      rec.start();
-    } catch (err) {
-      console.error('Falha ao iniciar:', err);
-      setIsListening(false);
-    }
+    try { rec.start(); } catch (err) { setIsListening(false); }
   };
 
   useEffect(() => {
-    return () => {
-      if (recognitionRef.current) recognitionRef.current.stop();
-    };
+    return () => { if (recognitionRef.current) recognitionRef.current.stop(); };
   }, []);
 
   const handleAIProcess = async () => {
-    // Se ainda estiver ouvindo, para antes de processar
     if (isListening && recognitionRef.current) {
       recognitionRef.current.stop();
       setIsListening(false);
@@ -121,19 +89,31 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
 
     if (!aiText.trim()) return;
     setIsAIProcessing(true);
+    setSuggestedCategory(null);
+
     try {
       const data = await onProcessAICommand(aiText);
       if (data) {
         setDescription(data.descricao || description);
         setAmount(String(data.amount) || amount);
-        setCategory(data.category || category);
         setPaymentMethod(data.paymentMethod || paymentMethod);
         setInstallments(data.installments || installments);
         setDate(data.date || date);
+
+        if (data.category === 'NEW' && data.suggestedCategory) {
+          const newCat: Category = {
+            id: `cat_${Date.now()}`,
+            ...data.suggestedCategory
+          };
+          setSuggestedCategory(newCat);
+          setCategory(newCat.id);
+        } else {
+          setCategory(data.category || category);
+        }
         setAiText('');
       }
     } catch (err: any) {
-      alert(err.message || 'Erro ao processar comando IA');
+      alert(err.message || 'Erro IA');
     } finally {
       setIsAIProcessing(false);
     }
@@ -149,33 +129,31 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
       paymentMethod,
       installments,
       date,
+      newCategory: suggestedCategory || undefined
     });
     setDescription('');
     setAmount('');
     setInstallments(1);
+    setSuggestedCategory(null);
   };
 
   return (
     <div className="glass-card p-6 rounded-[2.5rem] border border-white/10 shadow-2xl animate-in zoom-in-95 duration-300">
       <div className="flex justify-between items-center mb-6">
         <h3 className="font-black text-white text-lg tracking-tight flex items-center gap-3">
-          <div className="p-2 bg-indigo-500/20 rounded-xl">
-            <PlusIcon className="size-5 text-indigo-400" />
+          <div className="p-2 bg-indigo-600 rounded-xl">
+            <PlusIcon className="size-5 text-white" />
           </div>
           Nova Movimentação
         </h3>
-        <button
-          onClick={onClose}
-          className="p-2 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-all"
-        >
+        <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl text-slate-400 transition-all">
           <XIcon className="size-5" />
         </button>
       </div>
 
+      {/* IA Section */}
       <div className="mb-6 space-y-3">
-        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 block">
-          Entrada Mágica (IA)
-        </label>
+        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 block">Entrada Mágica (IA)</label>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <input
@@ -190,20 +168,13 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
             />
             <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-indigo-500/50" />
           </div>
-
           <button
             type="button"
             onClick={handleVoiceInput}
-            title={isListening ? "Parar de ouvir" : "Começar a falar"}
-            className={`p-4 rounded-2xl border transition-all ${
-              isListening
-                ? 'bg-rose-500 text-white border-rose-400 animate-pulse'
-                : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20'
-            }`}
+            className={`p-4 rounded-2xl border transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20'}`}
           >
             {isListening ? <MicOff className="size-5" /> : <Mic className="size-5" />}
           </button>
-
           <button
             type="button"
             onClick={handleAIProcess}
@@ -213,12 +184,26 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
             {isAIProcessing ? <Loader2 className="size-5 animate-spin" /> : 'Processar'}
           </button>
         </div>
-        <p className="text-[9px] text-slate-500 font-medium px-2">
-          {isListening
-            ? "O microfone continuará ativo até você clicar no botão vermelho de parar."
-            : "Fale calmamente. O sistema agora permite pausas maiores entre as palavras."}
-        </p>
       </div>
+
+      {/* Suggested Category Alert */}
+      {suggestedCategory && (
+        <div className="mb-6 p-4 bg-violet-500/20 border border-violet-500/30 rounded-2xl flex items-center gap-3 animate-in slide-in-from-left-4">
+          <div className="p-2 bg-violet-500/20 rounded-xl text-violet-400">
+            <AlertCircle className="size-5" />
+          </div>
+          <div className="flex-1">
+            <p className="text-xs font-bold text-white">IA sugere criar categoria: {suggestedCategory.icon} {suggestedCategory.name}</p>
+            <p className="text-[10px] text-slate-400 uppercase font-black mt-0.5">Ela será salva junto com este lançamento.</p>
+          </div>
+          <button
+            onClick={() => setSuggestedCategory(null)}
+            className="text-[10px] font-black text-rose-400 uppercase tracking-widest p-2 hover:bg-rose-500/10 rounded-lg"
+          >
+            Ignorar
+          </button>
+        </div>
+      )}
 
       <div className="h-px bg-white/5 mb-6" />
 
@@ -226,11 +211,10 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div>
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">O que você comprou/recebeu?</label>
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Descrição</label>
               <input
                 type="text"
-                placeholder="Ex: Supermercado, Salário..."
-                className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm transition-all"
+                className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 required
@@ -242,8 +226,7 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
                 <input
                   type="number"
                   step="0.01"
-                  placeholder="0,00"
-                  className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm transition-all"
+                  className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   required
@@ -253,7 +236,7 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Data</label>
                 <input
                   type="date"
-                  className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm transition-all"
+                  className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl outline-none text-white text-sm"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                 />
@@ -265,14 +248,15 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
             <div>
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Categoria</label>
               <select
-                className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm transition-all appearance-none"
+                className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm appearance-none"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
+                {suggestedCategory && (
+                  <option value={suggestedCategory.id}>{suggestedCategory.icon} {suggestedCategory.name} (Nova)</option>
+                )}
                 {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.icon} {cat.name}
-                  </option>
+                  <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
                 ))}
               </select>
             </div>
@@ -281,38 +265,30 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
               <div>
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Pagamento</label>
                 <select
-                  className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm transition-all appearance-none"
+                  className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm appearance-none"
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                 >
                   {PAYMENT_METHODS.map((pm) => (
-                    <option key={pm.id} value={pm.id}>
-                      {pm.name}
-                    </option>
+                    <option key={pm.id} value={pm.id}>{pm.name}</option>
                   ))}
                 </select>
               </div>
-
               {paymentMethod === 'cartao' ? (
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Parcelas</label>
-                  <div className="flex items-center gap-2 bg-slate-800/50 border border-white/5 rounded-2xl px-4 py-3.5">
+                  <div className="bg-slate-800/50 border border-white/5 rounded-2xl px-4 py-3.5">
                     <input
                       type="number"
-                      min="1"
-                      max="60"
                       className="w-full bg-transparent outline-none text-white font-bold text-center"
                       value={installments}
                       onChange={(e) => setInstallments(parseInt(e.target.value) || 1)}
                     />
-                    <span className="text-[10px] font-black text-slate-500 uppercase">x</span>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col justify-end">
-                   <div className="bg-slate-900/40 border border-white/5 text-[9px] font-black text-slate-600 uppercase rounded-2xl p-4 text-center">
-                    Pagamento à Vista
-                  </div>
+                   <div className="bg-slate-900/40 border border-white/5 text-[9px] font-black text-slate-600 uppercase rounded-2xl p-4 text-center">À Vista</div>
                 </div>
               )}
             </div>
@@ -320,10 +296,7 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
         </div>
 
         <div className="flex justify-end pt-4">
-          <button
-            type="submit"
-            className="btn-primary px-8 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest"
-          >
+          <button type="submit" className="btn-primary px-8 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest">
             Confirmar Lançamento
           </button>
         </div>

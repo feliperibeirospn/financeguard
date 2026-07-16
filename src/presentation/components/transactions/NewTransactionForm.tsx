@@ -101,9 +101,17 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, onProcessAIC
         setDate(data.date || date);
 
         if (data.category === 'NEW' && data.suggestedCategory) {
+          // Fallback para ícones caso a IA mande texto em vez de emoji
+          const emojiFallback: Record<string, string> = {
+            'computer': '💻', 'car': '🚗', 'videogame': '🎮', 'food': '🍔', 'health': '💊', 'home': '🏠'
+          };
+          const rawIcon = data.suggestedCategory.icon?.toLowerCase() || '📦';
+          const finalIcon = emojiFallback[rawIcon] || (rawIcon.length > 2 ? '📦' : rawIcon);
+
           const newCat: Category = {
             id: `cat_${Date.now()}`,
-            ...data.suggestedCategory
+            ...data.suggestedCategory,
+            icon: finalIcon
           };
           setSuggestedCategory(newCat);
           setCategory(newCat.id);

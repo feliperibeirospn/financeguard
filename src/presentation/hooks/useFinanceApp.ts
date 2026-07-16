@@ -265,7 +265,7 @@ export const useFinanceApp = () => {
   const handleProcessAICommand = async (text: string) => {
     const categoriesPrompt = db.categorias.map(c => `ID: ${c.id}, Nome: ${c.name}, Tipo: ${c.type}`).join('\n');
     const aiManage = db.config.aiManageCategories;
-    const systemPrompt = `Extraia dados em JSON: {descricao, amount, category, paymentMethod, installments, date, suggestedCategory?}. Categorias Atuais:\n${categoriesPrompt}\n${aiManage ? 'Se o gasto NÃO se encaixar, sugira em suggestedCategory: { name, icon, color, type }. category="NEW".' : 'Use apenas as existentes.'}`;
+    const systemPrompt = `Extraia dados em JSON: {descricao, amount, category, paymentMethod, installments, date, suggestedCategory?}. Categorias Atuais:\n${categoriesPrompt}\n${aiManage ? 'Se o gasto NÃO se encaixar, sugira em suggestedCategory: { name, icon, color, type }. O campo icon DEVE ser obrigatoriamente um ÚNICO EMOJI que represente a categoria. category="NEW".' : 'Use apenas as existentes.'}`;
     return callAI(systemPrompt, text);
   };
 

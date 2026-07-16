@@ -9,11 +9,12 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { ArrowDownCircle, ArrowUpCircle, CreditCard, DollarSign, PiggyBank } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, CreditCard, DollarSign, PiggyBank, CalendarClock, ChevronRight } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { AIInsights } from '../../components/ui/feedback/AIInsights';
 import { formatCurrency } from '../../utils/formatCurrency';
 import type { FinanceSummary, ChartDatum } from '../../hooks/useFinanceApp';
+import type { Recorrencia } from '../../../infrastructure/datasources/storage/sqliteStorage';
 
 interface DashboardPageProps {
   summary: FinanceSummary;
@@ -21,7 +22,9 @@ interface DashboardPageProps {
   savingsTargetPct: number;
   aiInsights: string[];
   isAIAnalyzing: boolean;
+  pendingRecurring: Recorrencia[];
   onRefreshInsights: () => void;
+  onApplyRecurring: () => void;
 }
 
 export const DashboardPage = ({
@@ -30,12 +33,13 @@ export const DashboardPage = ({
   savingsTargetPct,
   aiInsights,
   isAIAnalyzing,
-  onRefreshInsights
+  pendingRecurring,
+  onRefreshInsights,
+  onApplyRecurring
 }: DashboardPageProps) => {
   const savingsPct = summary.savingsRate;
   const progress = Math.min(Math.round((savingsPct / savingsTargetPct) * 100), 100);
 
-  // Trigger automático ao abrir o dashboard (uma vez por dia via cache no hook)
   useEffect(() => {
     onRefreshInsights();
   }, []);
@@ -43,7 +47,30 @@ export const DashboardPage = ({
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-      {/* Insights Inteligentes (Topo) */}
+      {/* Aviso de Contas Fixas Pendentes */}
+      {pendingRecurring.length > 0 && (
+        <div className="p-1 rounded-[2rem] bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/20 shadow-2xl shadow-amber-900/10">
+          <div className="glass-card p-6 rounded-[1.9rem] flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="size-14 bg-amber-500/20 rounded-[1.2rem] flex items-center justify-center text-amber-400">
+                <CalendarClock className="size-7" />
+              </div>
+              <div>
+                <h4 className="font-black text-white text-lg tracking-tight">Contas Fixas Pendentes</h4>
+                <p className="text-sm text-slate-400 font-medium">Você possui {pendingRecurring.length} lançamentos fixos para este mês.</p>
+              </div>
+            </div>
+            <button
+              onClick={onApplyRecurring}
+              className="w-full md:w-auto px-8 py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-widest rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl shadow-amber-900/20"
+            >
+              Lançar Agora <ChevronRight className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Insights Inteligentes */}
       <AIInsights
         insights={aiInsights}
         isAnalyzing={isAIAnalyzing}

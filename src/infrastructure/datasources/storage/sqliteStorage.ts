@@ -6,17 +6,23 @@ import { generateUUID } from '../../../domain/shared/generateUUID';
 /**
  * Estado completo do "banco SQLite" simulado, persistido em localStorage.
  * Reflete as 3 tabelas principais: categorias, transacoes, parcelamentos.
- *
- * Em produção este seria substituído por chamadas reais ao SQLCipher
- * via `@op-engineering/op-sqlite` ou similar — o contrato de tipos
- * permaneceria idêntico.
  */
 export type AIProvider = 'groq' | 'gemini' | 'deepseek';
+
+export interface Recorrencia {
+  id: string;
+  descricao: string;
+  valor: number;
+  categoria_id: string;
+  dia: number;
+  forma_pagamento: string;
+}
 
 export interface SqliteDatabase {
   categorias: typeof INITIAL_CATEGORIES;
   parcelamentos: Parcelamento[];
   transacoes: Transacao[];
+  recorrencias: Recorrencia[];
   config: {
     savingsTargetPct: number;
     aiConfig?: {
@@ -34,11 +40,7 @@ export interface SqliteDatabase {
 const STORAGE_KEY = 'sqlite_simulation_db';
 
 /**
- * Seed inicial injetado na primeira execução (ou quando localStorage está vazio).
- * Espelha o seed do `app_de_produ_o.tsx` original:
- *  - 4 categorias (essencial, lazer, investimento, receita)
- *  - 2 transações de exemplo (salário + aluguel)
- *  - 0 parcelamentos
+ * Seed inicial injetado na primeira execução.
  */
 export const getDefaultSeed = (): SqliteDatabase => {
   const today = new Date().toISOString().split('T')[0];
@@ -71,6 +73,7 @@ export const getDefaultSeed = (): SqliteDatabase => {
         status_sincronismo: 'SINCRONIZADO',
       },
     ],
+    recorrencias: [],
     config: {
       savingsTargetPct: 20,
     },
@@ -78,9 +81,7 @@ export const getDefaultSeed = (): SqliteDatabase => {
 };
 
 /**
- * Carrega o banco simulado do localStorage.
- * Retorna `null` quando não há nada persistido — o chamador decide
- * se injeta o seed default.
+ * Carrega o banco simulado com migração de esquema automática.
  */
 export const loadDb = (): SqliteDatabase | null => {
   if (typeof window === 'undefined' || !window.localStorage) {
@@ -88,17 +89,27 @@ export const loadDb = (): SqliteDatabase | null => {
   }
   const raw = window.localStorage.getItem(STORAGE_KEY);
   if (!raw) return null;
+
   try {
-    return JSON.parse(raw) as SqliteDatabase;
-  } catch {
-    // localStorage corrompido — deixa o caller cair no seed default
+    const data = JSON.parse(raw);
+
+    // MIGRAÇÃO DE DADOS: Se o banco existir mas faltar a nova tabela de recorrencias,
+    // nós injetamos ela vazia para evitar que o React quebre ao tentar ler undefined.
+    if (data && !data.recorrencias) {
+      data.recorrencias = [];
+      console.log('Migração: Tabela de recorrencias adicionada ao banco local.');
+      saveDb(data); // Salva o banco corrigido
+    }
+
+    return data as SqliteDatabase;
+  } catch (e) {
+    console.error('Erro ao carregar banco local:', e);
     return null;
   }
 };
 
 /**
  * Persiste o estado completo do banco simulado em localStorage.
- * Operação idempotente — basta reescrever a chave inteira.
  */
 export const saveDb = (db: SqliteDatabase): void => {
   if (typeof window === 'undefined' || !window.localStorage) return;
@@ -106,8 +117,7 @@ export const saveDb = (db: SqliteDatabase): void => {
 };
 
 /**
- * Limpa completamente o banco simulado.
- * Útil em testes ou para um futuro "resetar app" do menu.
+ * Limpa o banco.
  */
 export const clearDb = (): void => {
   if (typeof window === 'undefined' || !window.localStorage) return;

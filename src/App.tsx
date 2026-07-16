@@ -23,7 +23,6 @@ export default function App() {
     isFormOpen,
     setIsFormOpen,
     isOnline,
-    isEncrypted,
     logs,
     db,
     filteredTransactions,
@@ -34,6 +33,7 @@ export default function App() {
     isAIAnalyzing,
     aiInsights,
     aiManageCategories,
+    pendingRecurring,
     handleAddTransaction,
     handleDeleteTransaction,
     handleSyncData,
@@ -46,6 +46,9 @@ export default function App() {
     handleResetDatabase,
     handleUpdateSavingsTarget,
     handleUpdateCategories,
+    handleAddRecurring,
+    handleDeleteRecurring,
+    handleApplyRecurring,
   } = useFinanceApp();
 
   const renderActiveTab = () => {
@@ -58,7 +61,9 @@ export default function App() {
             savingsTargetPct={savingsTargetPct}
             aiInsights={aiInsights}
             isAIAnalyzing={isAIAnalyzing}
+            pendingRecurring={pendingRecurring}
             onRefreshInsights={() => handleGenerateInsights(true)}
+            onApplyRecurring={handleApplyRecurring}
           />
         );
       case 'transacoes':
@@ -74,12 +79,15 @@ export default function App() {
           <AdminPage
             savingsTargetPct={savingsTargetPct}
             categories={db.categorias}
+            recorrencias={db.recorrencias}
             aiConfig={db.config?.aiConfig}
             aiManageCategories={aiManageCategories}
             onUpdateSavingsTarget={handleUpdateSavingsTarget}
             onUpdateCategories={handleUpdateCategories}
             onUpdateAIConfig={handleUpdateAIConfig}
             onUpdateAIManageCategories={handleUpdateAIManageCategories}
+            onAddRecurring={handleAddRecurring}
+            onDeleteRecurring={handleDeleteRecurring}
             onResetDatabase={handleResetDatabase}
           />
         );
@@ -94,7 +102,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       <StatusBar
         isOnline={isOnline}
-        isEncrypted={isEncrypted}
+        isEncrypted={true}
         onToggleOnline={handleToggleOnline}
         onSync={handleSyncData}
       />
@@ -112,11 +120,7 @@ export default function App() {
               Arquitetura Limpa • <span className="text-slate-400">Privacidade Absoluta</span>
             </p>
           </div>
-
-          <div className="hidden lg:block">
-            <TabNav activeTab={activeTab} onChange={setActiveTab} />
-          </div>
-
+          <div className="hidden lg:block"><TabNav activeTab={activeTab} onChange={setActiveTab} /></div>
           <MobileMenu activeTab={activeTab} onChange={setActiveTab} />
         </header>
 
@@ -129,17 +133,9 @@ export default function App() {
               setSelectedYear(y);
             }}
           />
-
           <div className="flex gap-3">
-            <button onClick={handleExportCSV} className="btn-secondary flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider">
-              <Download className="size-4" /> Exportar
-            </button>
-            <button
-              onClick={() => setIsFormOpen((v) => !v)}
-              className="btn-primary flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider"
-            >
-              <PlusCircle className="size-4" /> Novo Lançamento
-            </button>
+            <button onClick={handleExportCSV} className="btn-secondary flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider"><Download className="size-4" /> Exportar</button>
+            <button onClick={() => setIsFormOpen((v) => !v)} className="btn-primary flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider"><PlusCircle className="size-4" /> Novo Lançamento</button>
           </div>
         </div>
 
@@ -154,17 +150,13 @@ export default function App() {
               />
             </div>
           )}
-
-          <section className="min-h-[400px]">
-            {renderActiveTab()}
-          </section>
+          <section className="min-h-[400px]">{renderActiveTab()}</section>
         </div>
       </main>
 
       <footer className="p-8 text-center text-slate-600 text-[10px] font-bold uppercase tracking-[0.4em]">
         &copy; 2026 FinanceGuard • Versão 1.2.0-Stable
       </footer>
-
       <Toast {...toast} />
     </div>
   );

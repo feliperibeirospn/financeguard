@@ -10,6 +10,7 @@ import {
   exportTransactionsToCSV,
   type SqliteDatabase,
   type AIProvider,
+  type Recorrencia,
 } from '../../infrastructure/datasources/storage';
 import type { TabId } from '../components/ui/tabs';
 
@@ -47,22 +48,35 @@ export interface ToastState {
   visible: boolean;
 }
 
+/**
+ * Hook raiz da aplicação. Concentra todo o estado de UI e a ponte
+ * com o Domain e a Infrastructure.
+ */
 export const useFinanceApp = () => {
+  // ---------- Infra / sync ----------
   const [isOnline, setIsOnline] = useState(true);
-  const [isEncrypted] = useState(true);
   const [logs, setLogs] = useState<LogEntry[]>(() => [
     { timestamp: new Date().toLocaleTimeString(), layer: 'INFRASTRUCTURE', message: 'SQLCipher inicializado.' },
     { timestamp: new Date().toLocaleTimeString(), layer: 'DOMAIN', message: 'Entidades prontas.' },
   ]);
 
+  // ---------- Banco simulado ----------
   const [db, setDb] = useState<SqliteDatabase>(() => loadDb() ?? getDefaultSeed());
   const [toast, setToast] = useState<ToastState>({ message: '', type: 'success', visible: false });
   const [isAIAnalyzing, setIsAIAnalyzing] = useState(false);
 
+  // Persistência automática
   useEffect(() => {
     saveDb(db);
   }, [db]);
 
+  // ---------- UI State ----------
+  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  // ---------- Helpers ----------
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type, visible: true });
     setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
@@ -72,11 +86,7 @@ export const useFinanceApp = () => {
     setLogs((prev) => [{ timestamp: new Date().toLocaleTimeString(), layer, message }, ...prev.slice(0, MAX_LOGS - 1)]);
   }, []);
 
-  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [isFormOpen, setIsFormOpen] = useState(false);
-
+  // ---------- Filtered + summary ----------
   const filteredTransactions: Transacao[] = useMemo(() => {
     return db.transacoes.filter((t) => {
       const d = new Date(t.data);
@@ -111,13 +121,20 @@ export const useFinanceApp = () => {
     })).filter((d) => d.value > 0);
   }, [summary.byCategory, db.categorias]);
 
-  const handleAddTransaction = useCallback((input: NewTransactionInput & { newCategory?: any }) => {
+  // Recorrências Pendentes
+  const pendingRecurring = useMemo(() => {
+    const existingDescriptions = new Set(filteredTransactions.map(t => t.descricao.toLowerCase()));
+    return db.recorrencias.filter(r => !existingDescriptions.has(r.descricao.toLowerCase()));
+  }, [db.recorrencias, filteredTransactions]);
+
+  // ---------- Ações ----------
+  const handleAddTransaction = useCallback((input: NewTransactionInput) => {
     try {
       const { description, amount, category, paymentMethod, installments, date, newCategory } = input;
 
       if (newCategory) {
         setDb(prev => ({ ...prev, categorias: [...prev.categorias, newCategory] }));
-        addLog('DOMAIN', `Nova categoria "${newCategory.name}" criada via IA.`);
+        addLog('DOMAIN', `Nova categoria "${newCategory.name}" criada.`);
       }
 
       const cat = newCategory || db.categorias.find(c => c.id === category);
@@ -125,6 +142,7 @@ export const useFinanceApp = () => {
       const finalAmount = isIncome ? Math.abs(amount) : -Math.abs(amount);
       const newTxId = `t_${Date.now()}`;
       const syncStatus: Transacao['status_sincronismo'] = isOnline ? 'SINCRONIZADO' : 'PENDENTE';
+
       if (paymentMethod === 'cartao' && installments > 1) {
         const { parcelamento, parcelas } = generateInstallments({ descricao: description, valorTotal: finalAmount, qtdParcelas: installments, categoriaId: category, dataInicio: date, statusSincronismo: syncStatus, timestamp: Date.now(), idPrefix: newTxId });
         setDb((prev) => ({ ...prev, parcelamentos: [...prev.parcelamentos, parcelamento], transacoes: [...parcelas, ...prev.transacoes] }));
@@ -135,7 +153,7 @@ export const useFinanceApp = () => {
       showToast('Lançamento salvo!', 'success');
       setIsFormOpen(false);
     } catch (err) { showToast('Erro ao salvar.', 'error'); }
-  }, [db.categorias, isOnline, showToast]);
+  }, [db.categorias, isOnline, showToast, addLog]);
 
   const handleDeleteTransaction = useCallback((id: string) => {
     if (window.confirm('Excluir transação?')) {
@@ -162,6 +180,45 @@ export const useFinanceApp = () => {
     setIsOnline((prev) => !prev);
     addLog('INFRASTRUCTURE', `Rede: ${!isOnline ? 'ONLINE' : 'OFFLINE'}`);
   }, [isOnline, addLog]);
+
+  // ---------- Recorrência Actions ----------
+  const handleAddRecurring = (input: Omit<Recorrencia, 'id'>) => {
+    const newRec: Recorrencia = { ...input, id: `rec_${Date.now()}` };
+    setDb(prev => ({ ...prev, recorrencias: [...prev.recorrencias, newRec] }));
+    showToast('Conta fixa salva!', 'success');
+  };
+
+  const handleDeleteRecurring = (id: string) => {
+    if (window.confirm('Remover esta conta fixa?')) {
+      setDb(prev => ({ ...prev, recorrencias: prev.recorrencias.filter(r => r.id !== id) }));
+      showToast('Removida.', 'success');
+    }
+  };
+
+  const handleApplyRecurring = () => {
+    const newTxs: Transacao[] = pendingRecurring.map(r => {
+      const date = new Date(selectedYear, selectedMonth, r.dia).toISOString().split('T')[0];
+      const cat = db.categorias.find(c => c.id === r.categoria_id);
+      const isIncome = cat?.type === 'income';
+      const finalAmount = isIncome ? Math.abs(r.valor) : -Math.abs(r.valor);
+
+      return {
+        id: `t_rec_${r.id}_${Date.now()}`,
+        id_remoto: generateUUID(),
+        descricao: r.descricao,
+        valor: finalAmount,
+        categoria_id: r.categoria_id,
+        data: date,
+        forma_pagamento: r.forma_pagamento as any,
+        parcelamento_id: null,
+        atualizado_em: Date.now(),
+        status_sincronismo: isOnline ? 'SINCRONIZADO' : 'PENDENTE' as any,
+      };
+    });
+
+    setDb(prev => ({ ...prev, transacoes: [...newTxs, ...prev.transacoes] }));
+    showToast(`${newTxs.length} contas fixas lançadas!`, 'success');
+  };
 
   // ---------- IA Core ----------
   const callAI = async (systemPrompt: string, userPrompt: string) => {
@@ -208,24 +265,20 @@ export const useFinanceApp = () => {
   const handleProcessAICommand = async (text: string) => {
     const categoriesPrompt = db.categorias.map(c => `ID: ${c.id}, Nome: ${c.name}, Tipo: ${c.type}`).join('\n');
     const aiManage = db.config.aiManageCategories;
-
-    const systemPrompt = `Extraia dados em JSON: {descricao, amount, category, paymentMethod, installments, date, suggestedCategory?}.
-    Categorias Atuais:\n${categoriesPrompt}
-
-    ${aiManage ? 'Se o gasto NÃO se encaixar nas categorias acima, crie uma nova em suggestedCategory: { name, icon, color, type: "expense"|"income" }. No campo category use "NEW".' : 'Use APENAS as categorias existentes.'}`;
-
+    const systemPrompt = `Extraia dados em JSON: {descricao, amount, category, paymentMethod, installments, date, suggestedCategory?}. Categorias Atuais:\n${categoriesPrompt}\n${aiManage ? 'Se o gasto NÃO se encaixar, sugira em suggestedCategory: { name, icon, color, type }. category="NEW".' : 'Use apenas as existentes.'}`;
     return callAI(systemPrompt, text);
   };
 
   return {
     activeTab, setActiveTab, selectedMonth, selectedYear, setSelectedMonth, setSelectedYear, isFormOpen, setIsFormOpen,
-    isOnline, isEncrypted, logs, db, filteredTransactions, summary, chartData, toast, isAIAnalyzing,
+    isOnline, logs, db, filteredTransactions, summary, chartData, toast, isAIAnalyzing,
+    pendingRecurring,
     savingsTargetPct: db.config?.savingsTargetPct ?? 20,
     aiConfig: db.config?.aiConfig,
     aiInsights: db.config?.lastAIAnalysis?.insights || [],
     aiManageCategories: db.config?.aiManageCategories || false,
     handleAddTransaction, handleDeleteTransaction, handleSyncData, handleExportCSV, handleToggleOnline,
-    handleProcessAICommand, handleGenerateInsights,
+    handleProcessAICommand, handleGenerateInsights, handleAddRecurring, handleDeleteRecurring, handleApplyRecurring,
     handleUpdateAIConfig: (provider: AIProvider, apiKey: string) => {
       setDb(prev => ({ ...prev, config: { ...prev.config, aiConfig: { provider, apiKey } } }));
       showToast('IA Configurada!', 'success');

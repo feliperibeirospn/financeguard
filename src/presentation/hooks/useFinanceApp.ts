@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Dropbox } from 'dropbox';
 import type { LogEntry, LogLayer } from '../../domain/logging/entities/LogEntry';
 import type { Transacao } from '../../domain/transactions/entities/Transacao';
 import { generateInstallments } from '../../domain/transactions';
@@ -12,6 +13,7 @@ import {
   type AIProvider,
   type Recorrencia,
 } from '../../infrastructure/datasources/storage';
+import { encryptData, decryptData } from '../../infrastructure/utils/crypto';
 import type { TabId } from '../components/ui/tabs';
 
 const MAX_LOGS = 50;
@@ -60,10 +62,10 @@ export const useFinanceApp = () => {
     { timestamp: new Date().toLocaleTimeString(), layer: 'DOMAIN', message: 'Entidades prontas.' },
   ]);
 
-  // ---------- Banco simulado ----------
   const [db, setDb] = useState<SqliteDatabase>(() => loadDb() ?? getDefaultSeed());
   const [toast, setToast] = useState<ToastState>({ message: '', type: 'success', visible: false });
   const [isAIAnalyzing, setIsAIAnalyzing] = useState(false);
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
 
   // Persistência automática
   useEffect(() => {
@@ -131,18 +133,15 @@ export const useFinanceApp = () => {
   const handleAddTransaction = useCallback((input: NewTransactionInput) => {
     try {
       const { description, amount, category, paymentMethod, installments, date, newCategory } = input;
-
       if (newCategory) {
         setDb(prev => ({ ...prev, categorias: [...prev.categorias, newCategory] }));
         addLog('DOMAIN', `Nova categoria "${newCategory.name}" criada.`);
       }
-
       const cat = newCategory || db.categorias.find(c => c.id === category);
       const isIncome = cat?.type === 'income';
       const finalAmount = isIncome ? Math.abs(amount) : -Math.abs(amount);
       const newTxId = `t_${Date.now()}`;
       const syncStatus: Transacao['status_sincronismo'] = isOnline ? 'SINCRONIZADO' : 'PENDENTE';
-
       if (paymentMethod === 'cartao' && installments > 1) {
         const { parcelamento, parcelas } = generateInstallments({ descricao: description, valorTotal: finalAmount, qtdParcelas: installments, categoriaId: category, dataInicio: date, statusSincronismo: syncStatus, timestamp: Date.now(), idPrefix: newTxId });
         setDb((prev) => ({ ...prev, parcelamentos: [...prev.parcelamentos, parcelamento], transacoes: [...parcelas, ...prev.transacoes] }));
@@ -201,7 +200,6 @@ export const useFinanceApp = () => {
       const cat = db.categorias.find(c => c.id === r.categoria_id);
       const isIncome = cat?.type === 'income';
       const finalAmount = isIncome ? Math.abs(r.valor) : -Math.abs(r.valor);
-
       return {
         id: `t_rec_${r.id}_${Date.now()}`,
         id_remoto: generateUUID(),
@@ -215,9 +213,86 @@ export const useFinanceApp = () => {
         status_sincronismo: isOnline ? 'SINCRONIZADO' : 'PENDENTE' as any,
       };
     });
-
     setDb(prev => ({ ...prev, transacoes: [...newTxs, ...prev.transacoes] }));
     showToast(`${newTxs.length} contas fixas lançadas!`, 'success');
+  };
+
+  // ---------- Backup & Cloud ----------
+  const handleDropboxBackup = async () => {
+    const config = db.config?.backupConfig;
+    if (!config?.dropboxToken) {
+      showToast('Dropbox não conectado.', 'error');
+      return;
+    }
+    if (!config.backupPassword) {
+      showToast('Defina uma senha de backup.', 'error');
+      return;
+    }
+
+    setIsCloudSyncing(true);
+    addLog('INFRASTRUCTURE', 'Iniciando backup criptografado...');
+
+    try {
+      const encrypted = encryptData(db, config.backupPassword);
+      const dbx = new Dropbox({ accessToken: config.dropboxToken });
+      await dbx.filesUpload({
+        path: '/financeguard_backup.enc',
+        contents: encrypted,
+        mode: { '.tag': 'overwrite' }
+      });
+
+      const now = new Date().toLocaleString();
+      setDb(prev => ({
+        ...prev,
+        config: { ...prev.config, backupConfig: { ...prev.config.backupConfig!, lastCloudBackup: now } }
+      }));
+      showToast('Backup enviado com sucesso!', 'success');
+      addLog('INFRASTRUCTURE', `Cloud Backup concluído em ${now}`);
+    } catch (err) {
+      console.error(err);
+      showToast('Erro ao enviar para o Dropbox.', 'error');
+    } finally {
+      setIsCloudSyncing(false);
+    }
+  };
+
+  const handleDropboxRestore = async (inputPassword?: string) => {
+    const config = db.config?.backupConfig;
+    const password = inputPassword || config?.backupPassword;
+
+    if (!config?.dropboxToken) {
+      showToast('Dropbox não conectado.', 'error');
+      return;
+    }
+    if (!password) {
+      showToast('Senha necessária.', 'error');
+      return;
+    }
+
+    setIsCloudSyncing(true);
+    addLog('INFRASTRUCTURE', 'Baixando backup da nuvem...');
+
+    try {
+      const dbx = new Dropbox({ accessToken: config.dropboxToken });
+      const response = await dbx.filesDownload({ path: '/financeguard_backup.enc' });
+      const blob = (response.result as any).fileBlob;
+      const ciphertext = await blob.text();
+
+      const decrypted = decryptData(ciphertext, password);
+      if (decrypted) {
+        setDb(decrypted);
+        showToast('Dados restaurados!', 'success');
+        addLog('DOMAIN', 'Base de dados substituída via Cloud Restore.');
+      } else {
+        showToast('Senha de backup incorreta.', 'error');
+        addLog('INFRASTRUCTURE', 'Falha na descriptografia: Senha inválida.');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Erro ao baixar backup.', 'error');
+    } finally {
+      setIsCloudSyncing(false);
+    }
   };
 
   // ---------- IA Core ----------
@@ -265,23 +340,39 @@ export const useFinanceApp = () => {
   const handleProcessAICommand = async (text: string) => {
     const categoriesPrompt = db.categorias.map(c => `ID: ${c.id}, Nome: ${c.name}, Tipo: ${c.type}`).join('\n');
     const aiManage = db.config.aiManageCategories;
-    const systemPrompt = `Extraia dados em JSON: {descricao, amount, category, paymentMethod, installments, date, suggestedCategory?}. Categorias Atuais:\n${categoriesPrompt}\n${aiManage ? 'Se o gasto NÃO se encaixar, sugira em suggestedCategory: { name, icon, color, type }. O campo icon DEVE ser obrigatoriamente um ÚNICO EMOJI que represente a categoria. category="NEW".' : 'Use apenas as existentes.'}`;
+    const systemPrompt = `Extraia dados em JSON: {descricao, amount, category, paymentMethod, installments, date, suggestedCategory?}. Categorias Atuais:\n${categoriesPrompt}\n${aiManage ? 'Se o gasto NÃO se encaixar, sugira em suggestedCategory: { name, icon, color, type }. O ícone DEVE ser um Emoji. category="NEW".' : 'Use apenas as existentes.'}`;
     return callAI(systemPrompt, text);
   };
 
   return {
     activeTab, setActiveTab, selectedMonth, selectedYear, setSelectedMonth, setSelectedYear, isFormOpen, setIsFormOpen,
-    isOnline, logs, db, filteredTransactions, summary, chartData, toast, isAIAnalyzing,
+    isOnline, logs, db, filteredTransactions, summary, chartData, toast, isAIAnalyzing, isCloudSyncing,
     pendingRecurring,
     savingsTargetPct: db.config?.savingsTargetPct ?? 20,
     aiConfig: db.config?.aiConfig,
     aiInsights: db.config?.lastAIAnalysis?.insights || [],
     aiManageCategories: db.config?.aiManageCategories || false,
+    backupConfig: db.config?.backupConfig,
     handleAddTransaction, handleDeleteTransaction, handleSyncData, handleExportCSV, handleToggleOnline,
     handleProcessAICommand, handleGenerateInsights, handleAddRecurring, handleDeleteRecurring, handleApplyRecurring,
+    handleDropboxBackup, handleDropboxRestore,
     handleUpdateAIConfig: (provider: AIProvider, apiKey: string) => {
       setDb(prev => ({ ...prev, config: { ...prev.config, aiConfig: { provider, apiKey } } }));
       showToast('IA Configurada!', 'success');
+    },
+    handleUpdateBackupConfig: (token?: string, password?: string) => {
+      setDb(prev => ({
+        ...prev,
+        config: {
+          ...prev.config,
+          backupConfig: {
+            ...(prev.config.backupConfig || {}),
+            ...(token !== undefined ? { dropboxToken: token } : {}),
+            ...(password !== undefined ? { backupPassword: password } : {})
+          }
+        }
+      }));
+      showToast('Configurações de Backup salvas!', 'success');
     },
     handleResetDatabase: () => { setDb(getDefaultSeed()); showToast('Resetado.', 'success'); },
     handleUpdateSavingsTarget: (pct: number) => {

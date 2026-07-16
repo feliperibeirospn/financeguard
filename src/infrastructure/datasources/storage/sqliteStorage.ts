@@ -34,6 +34,11 @@ export interface SqliteDatabase {
       insights: string[];
     };
     aiManageCategories?: boolean;
+    backupConfig?: {
+      dropboxToken?: string;
+      backupPassword?: string;
+      lastCloudBackup?: string;
+    };
   };
 }
 

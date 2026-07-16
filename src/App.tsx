@@ -31,8 +31,10 @@ export default function App() {
     savingsTargetPct,
     toast,
     isAIAnalyzing,
+    isCloudSyncing,
     aiInsights,
     aiManageCategories,
+    backupConfig,
     pendingRecurring,
     handleAddTransaction,
     handleDeleteTransaction,
@@ -43,6 +45,9 @@ export default function App() {
     handleGenerateInsights,
     handleUpdateAIConfig,
     handleUpdateAIManageCategories,
+    handleUpdateBackupConfig,
+    handleDropboxBackup,
+    handleDropboxRestore,
     handleResetDatabase,
     handleUpdateSavingsTarget,
     handleUpdateCategories,
@@ -82,12 +87,17 @@ export default function App() {
             recorrencias={db.recorrencias}
             aiConfig={db.config?.aiConfig}
             aiManageCategories={aiManageCategories}
+            backupConfig={backupConfig}
+            isCloudSyncing={isCloudSyncing}
             onUpdateSavingsTarget={handleUpdateSavingsTarget}
             onUpdateCategories={handleUpdateCategories}
             onUpdateAIConfig={handleUpdateAIConfig}
             onUpdateAIManageCategories={handleUpdateAIManageCategories}
+            onUpdateBackupConfig={handleUpdateBackupConfig}
             onAddRecurring={handleAddRecurring}
             onDeleteRecurring={handleDeleteRecurring}
+            onDropboxBackup={handleDropboxBackup}
+            onDropboxRestore={handleDropboxRestore}
             onResetDatabase={handleResetDatabase}
           />
         );

@@ -18,12 +18,15 @@
     "@capacitor/android": "^6.1.2",
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^6.1.2",
+    "crypto-js": "^4.2.0",
+    "dropbox": "^10.36.0",
     "lucide-react": "^0.456.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.13.3"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

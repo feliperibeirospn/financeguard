@@ -7,18 +7,16 @@ const CLIENT_ID = 'npc2tq3cd3vhad6';
 
 /**
  * Retorna a URL de redirecionamento.
- * No Mobile, usamos o esquema customizado que o Android entende.
  */
 const getRedirectUri = () => {
   if (Capacitor.isNativePlatform()) {
-     return 'com.felipecleones.financeguard://oauth';
+     return `db-${CLIENT_ID}://2/token`;
   }
-  return window.location.origin + '/';
+  return 'http://localhost:5173/';
 };
 
 /**
  * Inicia o fluxo OAuth2.
- * No Mobile, abre o navegador do sistema em vez de mudar a URL atual.
  */
 export const startDropboxAuth = async () => {
   const dbxAuth = new DropboxAuth({ clientId: CLIENT_ID });
@@ -37,7 +35,7 @@ export const startDropboxAuth = async () => {
   const finalUrl = authUrl.toString();
 
   if (Capacitor.isNativePlatform()) {
-    // Abre o navegador de forma que ele possa voltar para o app
+    // No Android, usamos o Browser nativo para abrir o login
     await Browser.open({ url: finalUrl });
   } else {
     window.location.href = finalUrl;
@@ -45,17 +43,26 @@ export const startDropboxAuth = async () => {
 };
 
 /**
- * Captura o token de uma string (URL ou Hash)
+ * Extrai o token de forma segura, tratando variações de URI nativas
  */
 export const extractToken = (rawString: string): string | null => {
-  const hash = rawString.includes('#') ? rawString.split('#')[1] : rawString;
-  const params = new URLSearchParams(hash);
-  return params.get('access_token');
+  try {
+    console.log('Tentando extrair token de:', rawString);
+    const url = new URL(rawString.replace('#', '?'));
+    // Tenta pegar do hash (fragment) ou da query string
+    const token = new URLSearchParams(url.search).get('access_token');
+    return token;
+  } catch (e) {
+    // Fallback para regex caso o formato da URL seja inválido para o construtor URL
+    const match = rawString.match(/access_token=([^&]+)/);
+    return match ? match[1] : null;
+  }
 };
 
 /**
  * Captura o token da URL atual (Modo Web)
  */
 export const getDropboxTokenFromUrl = (): string | null => {
-  return extractToken(window.location.hash.substring(1));
+  if (!window.location.hash) return null;
+  return extractToken(window.location.href);
 };

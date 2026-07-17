@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Settings, Plus, Trash2, Save, Target, Tag, Sparkles, CalendarClock, Cloud, Lock, LogIn, DownloadCloud, UploadCloud, Loader2 } from 'lucide-react';
+import { startDropboxAuth } from '../../../infrastructure/utils/dropboxOAuth';
 import type { Category } from '../../../domain/categories/entities/categories';
 import type { AIProvider, Recorrencia } from '../../../infrastructure/datasources/storage/sqliteStorage';
 
@@ -9,13 +10,13 @@ interface AdminPageProps {
   recorrencias: Recorrencia[];
   aiConfig?: { provider: AIProvider, apiKey: string };
   aiManageCategories: boolean;
-  backupConfig?: { dropboxToken?: string, backupPassword?: string, lastCloudBackup?: string };
+  backupConfig?: { dropboxToken?: string, dropboxAppKey?: string, backupPassword?: string, lastCloudBackup?: string };
   isCloudSyncing: boolean;
   onUpdateSavingsTarget: (pct: number) => void;
   onUpdateCategories: (categories: Category[]) => void;
   onUpdateAIConfig: (provider: AIProvider, apiKey: string) => void;
   onUpdateAIManageCategories: (active: boolean) => void;
-  onUpdateBackupConfig: (token?: string, password?: string) => void;
+  onUpdateBackupConfig: (token?: string, password?: string, appKey?: string) => void;
   onAddRecurring: (rec: Omit<Recorrencia, 'id'>) => void;
   onDeleteRecurring: (id: string) => void;
   onDropboxBackup: () => void;
@@ -45,23 +46,14 @@ export const AdminPage = ({
   const [newTarget, setNewTarget] = useState(savingsTargetPct);
   const [editingCategory, setEditingCategory] = useState<Partial<Category> | null>(null);
 
-  // Recurrence States
+  // States
   const [isAddingRec, setIsAddingRec] = useState(false);
   const [recForm, setRecForm] = useState({
     descricao: '', valor: '', categoria_id: categories[0]?.id || '', dia: 1, forma_pagamento: 'dinheiro'
   });
-
-  // IA States
   const [aiProvider, setAiProvider] = useState<AIProvider>(aiConfig?.provider || 'groq');
   const [aiKey, setAiKey] = useState(aiConfig?.apiKey || '');
-
-  // Backup States
   const [backupPass, setBackupPass] = useState(backupConfig?.backupPassword || '');
-
-  const handleConnectDropbox = () => {
-    const token = prompt("Insira seu Access Token do Dropbox (gerado no App Console):");
-    if (token) onUpdateBackupConfig(token);
-  };
 
   const handleSaveRec = () => {
     if (!recForm.descricao || !recForm.valor) return;
@@ -88,41 +80,75 @@ export const AdminPage = ({
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-      {/* SEÇÃO 1: NUVEM E SEGURANÇA */}
+      {/* SEÇÃO 1: NUVEM E SEGURANÇA (Simplificada para leigos) */}
       <section className="glass-card p-8 rounded-[2.5rem] space-y-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="p-2 bg-blue-500/20 rounded-xl"><Cloud className="text-blue-400 size-5" /></div>
-          <h3 className="font-black text-white text-lg tracking-tight">Backup Seguro na Nuvem</h3>
+          <h3 className="font-black text-white text-lg tracking-tight">Sincronização na Nuvem</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-4 p-6 bg-white/5 rounded-[2rem] border border-white/5">
-            <div className="flex justify-between items-center">
-               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Provedor: Dropbox</label>
-               {backupConfig?.dropboxToken && <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg">Conectado</span>}
+          {/* Login Dropbox */}
+          <div className="space-y-4 p-6 bg-white/5 rounded-[2rem] border border-white/5 flex flex-col justify-center">
+            <div className="flex justify-between items-center mb-2">
+               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Status da Conexão</label>
+               {backupConfig?.dropboxToken ? (
+                 <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg">✓ Conectado ao Dropbox</span>
+               ) : (
+                 <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded-lg">Desconectado</span>
+               )}
             </div>
-            <button onClick={handleConnectDropbox} className="btn-secondary w-full py-3 rounded-2xl text-xs font-bold uppercase flex items-center justify-center gap-2">
-              <LogIn className="size-4" /> {backupConfig?.dropboxToken ? 'Trocar Conta' : 'Conectar Dropbox'}
+
+            <button
+              onClick={startDropboxAuth}
+              className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-900/40 active:scale-95"
+            >
+              <LogIn className="size-5" />
+              {backupConfig?.dropboxToken ? 'Trocar Conta Dropbox' : 'Conectar com Dropbox'}
             </button>
+
+            <p className="text-[9px] text-slate-500 leading-relaxed text-center mt-2 px-2">
+              Seus dados serão criptografados e salvos em uma pasta privada no seu Dropbox.
+              <strong> Ninguém</strong>, nem o Dropbox, terá acesso aos seus dados.
+            </p>
           </div>
 
+          {/* Senha de Backup */}
           <div className="space-y-4 p-6 bg-white/5 rounded-[2rem] border border-white/5">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Senha Mestra de Backup</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Sua Senha Mestra</label>
             <div className="relative">
-              <input type="password" value={backupPass} onChange={(e) => setBackupPass(e.target.value)} placeholder="Sua senha secreta..." className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 pl-11 text-white focus:outline-none" />
+              <input
+                type="password"
+                value={backupPass}
+                onChange={(e) => setBackupPass(e.target.value)}
+                placeholder="Crie uma senha de segurança..."
+                className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 pl-11 text-white focus:outline-none focus:border-blue-500"
+              />
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
             </div>
-            <button onClick={() => onUpdateBackupConfig(undefined, backupPass)} className="btn-primary w-full py-3 rounded-2xl text-xs font-bold uppercase flex items-center justify-center gap-2">
+            <button
+              onClick={() => onUpdateBackupConfig(undefined, backupPass)}
+              className="btn-primary w-full py-3 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2"
+            >
               <Save className="size-4" /> Salvar Senha
             </button>
           </div>
         </div>
 
+        {/* Ações de Backup */}
         <div className="flex flex-col md:flex-row gap-4 pt-4 border-t border-white/5">
-          <button disabled={!backupConfig?.dropboxToken || !backupConfig?.backupPassword || isCloudSyncing} onClick={onDropboxBackup} className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all">
+          <button
+            disabled={!backupConfig?.dropboxToken || !backupConfig?.backupPassword || isCloudSyncing}
+            onClick={onDropboxBackup}
+            className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-indigo-900/20"
+          >
             {isCloudSyncing ? <Loader2 className="size-5 animate-spin" /> : <UploadCloud className="size-5" />} Enviar Backup
           </button>
-          <button disabled={!backupConfig?.dropboxToken || !backupConfig?.backupPassword || isCloudSyncing} onClick={() => onDropboxRestore()} className="flex-1 py-4 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all border border-white/5">
+          <button
+            disabled={!backupConfig?.dropboxToken || !backupConfig?.backupPassword || isCloudSyncing}
+            onClick={() => onDropboxRestore()}
+            className="flex-1 py-4 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all border border-white/5 active:scale-95"
+          >
             {isCloudSyncing ? <Loader2 className="size-5 animate-spin" /> : <DownloadCloud className="size-5" />} Restaurar
           </button>
         </div>
@@ -182,6 +208,7 @@ export const AdminPage = ({
         </section>
       </div>
 
+      {/* SEÇÃO 3: CONTAS FIXAS */}
       <section className="glass-card p-8 rounded-[2.5rem] space-y-6">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3"><CalendarClock className="text-amber-400 size-5" /><h3 className="font-black text-white text-lg tracking-tight">Contas Fixas</h3></div>

@@ -36,6 +36,7 @@ export interface SqliteDatabase {
     aiManageCategories?: boolean;
     backupConfig?: {
       dropboxToken?: string;
+      dropboxAppKey?: string;
       backupPassword?: string;
       lastCloudBackup?: string;
     };

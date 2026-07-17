@@ -360,7 +360,7 @@ export const useFinanceApp = () => {
       setDb(prev => ({ ...prev, config: { ...prev.config, aiConfig: { provider, apiKey } } }));
       showToast('IA Configurada!', 'success');
     },
-    handleUpdateBackupConfig: (token?: string, password?: string) => {
+    handleUpdateBackupConfig: (token?: string, password?: string, appKey?: string) => {
       setDb(prev => ({
         ...prev,
         config: {
@@ -368,7 +368,8 @@ export const useFinanceApp = () => {
           backupConfig: {
             ...(prev.config.backupConfig || {}),
             ...(token !== undefined ? { dropboxToken: token } : {}),
-            ...(password !== undefined ? { backupPassword: password } : {})
+            ...(password !== undefined ? { backupPassword: password } : {}),
+            ...(appKey !== undefined ? { dropboxAppKey: appKey } : {})
           }
         }
       }));

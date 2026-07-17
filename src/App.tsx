@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Download, PlusCircle, Wallet } from 'lucide-react';
 import { useFinanceApp } from './presentation/hooks/useFinanceApp';
 import { StatusBar } from './presentation/components/ui/StatusBar';
@@ -11,6 +12,7 @@ import { CleanArchLogsPage } from './presentation/pages/clean-arch-logs/CleanArc
 import { AdminPage } from './presentation/pages/admin/Admin';
 import { MobileMenu } from './presentation/components/ui/navigation/MobileMenu';
 import { Toast } from './presentation/components/ui/feedback/Toast';
+import { getDropboxTokenFromUrl } from './infrastructure/utils/dropboxOAuth';
 
 export default function App() {
   const {
@@ -55,6 +57,14 @@ export default function App() {
     handleDeleteRecurring,
     handleApplyRecurring,
   } = useFinanceApp();
+
+  // Capturar retorno do Dropbox OAuth
+  useEffect(() => {
+    const token = getDropboxTokenFromUrl();
+    if (token) {
+      handleUpdateBackupConfig(token);
+    }
+  }, [handleUpdateBackupConfig]);
 
   const renderActiveTab = () => {
     switch (activeTab) {

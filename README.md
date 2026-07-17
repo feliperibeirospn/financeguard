@@ -1,97 +1,102 @@
-# 🛡️ FinanceGuard Pro v1.2.0
+# 🛡️ FinanceGuard Pro v1.3.0
 
 > **Soberania Financeira na Palma da sua Mão.**
 > 
-> Aplicativo de finanças pessoais focado em **Privacidade Absoluta**, construído com **Clean Architecture** e portado para Android via **Capacitor**.
+> Aplicativo de finanças pessoais focado em **Privacidade Absoluta**, construído sob os princípios da **Clean Architecture** e portado para Android via **Capacitor**.
 
 [![Download APK](https://img.shields.io/badge/Download-APK%20Android-brightgreen?style=for-the-badge&logo=android)](https://github.com/feliperibeirospn/financeguard/releases)
-[![Version](https://img.shields.io/badge/Version-1.2.0--Stable-blue?style=flat-square)](https://github.com/feliperibeirospn/financeguard)
+[![Version](https://img.shields.io/badge/Version-1.3.0--Stable-blue?style=flat-square)](https://github.com/feliperibeirospn/financeguard)
+[![Security](https://img.shields.io/badge/Encryption-AES--256-orange?style=flat-square)](https://github.com/feliperibeirospn/financeguard)
 
 ---
 
-## 🌟 Diferenciais
+## 🌟 Diferenciais Estratégicos
 
-O **FinanceGuard Pro** não é apenas mais um gerenciador financeiro. Ele foi projetado para usuários que valorizam o controle total sobre seus dados.
+O **FinanceGuard Pro** redefine o gerenciamento financeiro moderno ao unir **Inteligência Artificial** de ponta com a segurança inabalável do **Offline-First**.
 
-- 🔒 **Offline-First & Local Storage**: Seus dados nunca saem do seu dispositivo. Sem nuvem, sem rastreadores.
-- 🤖 **Inteligência Artificial Nativa**: Suporte para Groq, Gemini e DeepSeek para lançamentos via voz ou texto.
-- 🏛️ **Clean Architecture**: Código modularizado e fácil de manter, separando regras de negócio da interface.
-- 💎 **Design Moderno (Glassmorphism)**: Interface ultra-moderna com efeitos de transparência, desfoque e gradientes profundos.
-- ⚙️ **Customização Total**: Painel de Ajustes para criar suas próprias categorias, ícones e metas de poupança.
-- 📄 **Exportação CSV**: Seus dados são seus. Exporte tudo a qualquer momento para Excel ou Google Sheets.
-
----
-
-## 🚀 Funcionalidades Principais
-
-- [x] **Entrada Mágica com IA**:
-    - Suporte a **Groq (Llama 3)**, **Google Gemini** e **DeepSeek**.
-    - Reconhecimento de Voz (Speech-to-Text) integrado.
-    - NLP para extração automática de valor, categoria e data.
-- [x] **Consultoria Financeira Proativa (Insights)**:
-    - Assistente que analisa automaticamente seu balanço mensal.
-    - Fornece 3 dicas estratégicas diárias para otimizar seus gastos e bater metas.
-    - Sistema híbrido: Análise automática inteligente ou sob demanda (botão Refresh).
-- [x] **Dashboard de Alta Fidelidade**: KPIs dinâmicos e gráficos que se adaptam às suas categorias.
-- [x] **Gestão de Lançamentos**: Fluxo completo de receitas e despesas com validação de sinal automática.
-- [x] **Motor de Parcelamento**: Inteligência para dividir compras no cartão automaticamente pelos meses futuros.
-- [x] **Painel Administrativo**:
-    - CRUD completo de Categorias com ícones e cores customizáveis.
-    - Ajuste de Meta de Poupança com feedback visual de progresso.
-    - Zona de Perigo para reset total do banco SQLite local.
-- [x] **Navegação Adaptativa**: Menu hambúrguer moderno para Android e abas dinâmicas para Desktop.
+- 🔒 **Segurança Bancária**: Criptografia AES-256 local para backups em nuvem. Nem o Dropbox, nem nós temos acesso aos seus dados.
+- 🤖 **IA Agnóstica**: Escolha seu cérebro. Suporte nativo para **Groq (Llama 3.3)**, **Google Gemini** e **DeepSeek**.
+- 🏛️ **Clean Architecture**: Design de software desacoplado que garante manutenibilidade e escalabilidade profissional.
+- 💎 **Visual de Próxima Geração**: Estética *Glassmorphism* com camadas de transparência, desfoque e animações fluidas.
+- 📱 **Multiplataforma**: Experiência otimizada para Desktop e Mobile (Android) via Capacitor.
 
 ---
 
-## 📸 Screenshots
+## 🚀 Funcionalidades de Elite
 
-### Dashboard & Gráficos
-<img width="1901" height="888" alt="Dashboard Moderno" src="https://github.com/user-attachments/assets/c3082edf-c62e-47a3-9fbf-5ddff9e12ec2" />
+### 1. ☁️ Backup Híbrido & Criptografado (Fase 5)
+Sincronize seus dados com o **Dropbox** sem abrir mão da privacidade.
+- **Cifragem Local**: O banco de dados é criptografado com sua **Senha Mestra** ANTES de sair do dispositivo.
+- **Login OAuth2**: Fluxo de autenticação moderno e seguro (Login direto ou via API Key).
+- **Recuperação Instantânea**: Restaure seu ecossistema financeiro em qualquer novo dispositivo.
 
-### Extrato Detalhado
-<img width="1903" height="825" alt="Extrato de Transações" src="https://github.com/user-attachments/assets/9a2cadc8-ab64-4851-87dc-db6da1255045" />
+### 2. 🤖 Ecossistema de IA Nativa
+- **Entrada Mágica**: Lançamentos via voz ou texto com processamento de linguagem natural (NLP).
+- **Insights Financeiros**: Consultoria diária proativa. A IA analisa seu comportamento de gastos e sugere otimizações reais.
+- **Auto-Categorização**: A IA aprende com seus gastos e pode criar categorias dinâmicas com ícones (Emojis) personalizados.
 
-### Painel Administrativo & IA
-<img width="1900" height="839" alt="Configurações e IA" src="https://github.com/user-attachments/assets/f6dd4d83-8ebd-4575-ae13-91d5a8277631" />
+### 3. 📅 Automação de Contas Fixas (Recorrências)
+Diga adeus ao preenchimento manual repetitivo.
+- **Gestão de Recorrências**: Cadastre aluguel, assinaturas (Netflix, Spotify) e contas mensais.
+- **Detecção de Pendências**: Banner inteligente no Dashboard avisa quando há contas fixas a serem lançadas no mês.
+- **Lançamento em Massa**: Gere todas as transações fixas do mês com apenas um clique.
+
+### 4. 📊 Dashboard & Analytics
+- **KPIs Dinâmicos**: Visão clara de Receitas, Despesas, Investimentos e Gastos no Cartão.
+- **Gráficos Adaptativos**: Composição mensal visual com Recharts.
+- **Motor de Parcelamento**: Divisão automática de compras parceladas com projeção de caixa futuro.
 
 ---
 
-## 🛠️ Tecnologias & Stack
+## 📂 Arquitetura do Sistema (Clean Architecture)
 
-- **Frontend**: React 18 + TypeScript (Strict Mode)
-- **Estilização**: Tailwind CSS + Glassmorphism Effects
-- **IA Integration**: Groq API, Gemini API, DeepSeek API
-- **Mobile**: Capacitor (Native Bridge)
-- **Charts**: Recharts (Responsive)
-- **Icons**: Lucide React
-
----
-
-## 📂 Estrutura de Pastas (Clean Architecture)
+Seguimos o padrão de camadas para garantir que a regra de negócio seja independente de frameworks e UI:
 
 ```bash
 src/
-├── domain/         # 🧠 Entidades e Casos de Uso (Regras puras)
-├── infrastructure/ # 🔌 Persistência local (SQLite simulation) e Exportação
-├── application/    # ⚙️ Orquestração de serviços
-└── presentation/   # 🎨 UI React (Components, Hooks, Pages, Utils)
+├── domain/         # 🧠 Coração do App: Entidades e Lógica Pura (Regras de Negócio)
+├── infrastructure/ # 🔌 Adaptadores: SQLite simulation, Crypto (AES-256), Cloud API
+├── application/    # ⚙️ Orquestradores: Serviços e lógica de aplicação
+└── presentation/   # 🎨 UI/UX: React, Tailwind, Hooks Reais, Componentes Glassmorphism
 ```
 
 ---
 
-## 📥 Como Instalar e Rodar
+## 🛠️ Stack Tecnológica
 
-### 📱 Android
-1. Certifique-se de ter o **Android Studio** e o **JDK 17**.
-2. Sincronize o projeto: `npm run prod:android`
-3. Gere o APK: `cd android; .\gradlew assembleDebug`
-
----
-
-## ⚖️ Licença e Soberania
-Este projeto foi desenvolvido com foco em transparência técnica. Todo o estado é persistido em `localStorage` para garantir que o usuário tenha **Soberania Total de Dados**.
+- **Core**: React 18 + TypeScript (Strict Mode)
+- **Segurança**: Crypto-JS (AES-256)
+- **Cloud**: Dropbox SDK + Direct Fetch Integration
+- **IA**: Groq Cloud, Google Generative AI, DeepSeek API
+- **Estilo**: Tailwind CSS + Animate.css
+- **Nativo**: Capacitor Framework
 
 ---
 
-## 📜 Histórico de Evolução
-O projeto evoluiu de um arquivo monolítico (`legacy/app_de_produ_o.legacy.tsx`) para uma estrutura profissional em Clean Architecture, demonstrando boas práticas de engenharia de software e refatoração.
+## 📥 Guia de Instalação Profissional
+
+### 📱 Ambiente Android
+1. Certifique-se de ter o **JDK 17** e **Android Studio** configurados.
+2. Sincronize o ecossistema web:
+   ```bash
+   npm install --legacy-peer-deps
+   npm run prod:android
+   ```
+3. Compile e gere o binário (APK):
+   ```bash
+   cd android
+   .\gradlew assembleDebug
+   ```
+
+---
+
+## ⚖️ Compromisso com a Privacidade
+Este projeto foi desenvolvido sob a filosofia de que **seus dados financeiros são sagrados**. Não existem servidores intermediários, não coletamos telemetria e sua chave de criptografia nunca sai da sua cabeça ou do seu dispositivo.
+
+---
+
+## 📜 Histórico de Versões
+- **v1.0.0**: Migração para Clean Architecture.
+- **v1.1.0**: Integração de IA e Voz.
+- **v1.2.0**: Lançamentos Recorrentes e UI Glassmorphism.
+- **v1.3.0**: Cloud Backup Criptografado (Dropbox) e melhorias de segurança.

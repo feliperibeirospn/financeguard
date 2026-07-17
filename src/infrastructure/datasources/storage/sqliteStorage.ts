@@ -37,6 +37,7 @@ export interface SqliteDatabase {
     backupConfig?: {
       dropboxToken?: string;
       dropboxAppKey?: string;
+      dropboxUserEmail?: string;
       backupPassword?: string;
       lastCloudBackup?: string;
     };

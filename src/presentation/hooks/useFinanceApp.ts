@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Dropbox } from 'dropbox';
 import type { LogEntry, LogLayer } from '../../domain/logging/entities/LogEntry';
 import type { Transacao } from '../../domain/transactions/entities/Transacao';
 import { generateInstallments } from '../../domain/transactions';
@@ -292,26 +291,53 @@ export const useFinanceApp = () => {
     }
 
     setIsCloudSyncing(true);
-    addLog('INFRASTRUCTURE', 'Baixando backup da nuvem...');
+    addLog('INFRASTRUCTURE', 'Baixando backup via API Direta...');
 
     try {
-      const dbx = new Dropbox({ accessToken: config.dropboxToken });
-      const response = await dbx.filesDownload({ path: '/financeguard_backup.enc' });
-      const blob = (response.result as any).fileBlob;
-      const ciphertext = await blob.text();
+      // MODO SEGURO: Usando fetch direto para download
+      const response = await fetch('https://content.dropboxapi.com/2/files/download', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.dropboxToken}`,
+          'Dropbox-API-Arg': JSON.stringify({
+            path: '/financeguard_backup.enc'
+          })
+        }
+      });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Dropbox API Error (${response.status}): ${errorText}`);
+      }
+
+      const ciphertext = await response.text();
       const decrypted = decryptData(ciphertext, password);
+
       if (decrypted) {
         setDb(decrypted);
-        showToast('Dados restaurados!', 'success');
+        showToast('Dados restaurados com sucesso!', 'success');
         addLog('DOMAIN', 'Base de dados substituída via Cloud Restore.');
       } else {
         showToast('Senha de backup incorreta.', 'error');
         addLog('INFRASTRUCTURE', 'Falha na descriptografia: Senha inválida.');
+        alert('Erro: Senha de backup incorreta ou arquivo corrompido.');
       }
-    } catch (err) {
-      console.error(err);
-      showToast('Erro ao baixar backup.', 'error');
+    } catch (err: any) {
+      console.error('Dropbox API Restore Error:', err);
+      const errorMsg = err.message || 'Erro desconhecido ao baixar';
+      addLog('INFRASTRUCTURE', `Falha no Restore: ${errorMsg}`);
+
+      let userMsg = 'Erro ao baixar backup.';
+      if (errorMsg.includes('404') || errorMsg.includes('path/not_found')) {
+        userMsg = 'Erro: Nenhum backup encontrado na sua conta.';
+      } else if (errorMsg.includes('401')) {
+        userMsg = 'Erro: Conexão expirada. Refaça o login.';
+      } else if (errorMsg.includes('insufficient_scope')) {
+        userMsg = 'Erro: Falta permissão de leitura no Dropbox.';
+      }
+
+      showToast(userMsg, 'error');
+      alert(`Detalhe do Erro no Restore: ${errorMsg}`);
     } finally {
       setIsCloudSyncing(false);
     }
@@ -382,7 +408,25 @@ export const useFinanceApp = () => {
       setDb(prev => ({ ...prev, config: { ...prev.config, aiConfig: { provider, apiKey } } }));
       showToast('IA Configurada!', 'success');
     },
-    handleUpdateBackupConfig: (token?: string, password?: string, appKey?: string) => {
+    handleUpdateBackupConfig: async (token?: string, password?: string, appKey?: string) => {
+      let email = undefined;
+
+      // Se um novo token foi fornecido, buscar o e-mail do usuário no Dropbox
+      if (token) {
+        try {
+          const response = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const userData = await response.json();
+            email = userData.email;
+          }
+        } catch (e) {
+          console.error('Erro ao buscar e-mail do Dropbox:', e);
+        }
+      }
+
       setDb(prev => ({
         ...prev,
         config: {
@@ -391,11 +435,12 @@ export const useFinanceApp = () => {
             ...(prev.config.backupConfig || {}),
             ...(token !== undefined ? { dropboxToken: token } : {}),
             ...(password !== undefined ? { backupPassword: password } : {}),
-            ...(appKey !== undefined ? { dropboxAppKey: appKey } : {})
+            ...(appKey !== undefined ? { dropboxAppKey: appKey } : {}),
+            ...(email !== undefined ? { dropboxUserEmail: email } : {})
           }
         }
       }));
-      showToast('Configurações de Backup salvas!', 'success');
+      showToast('Configurações salvas!', 'success');
     },
     handleResetDatabase: () => { setDb(getDefaultSeed()); showToast('Resetado.', 'success'); },
     handleUpdateSavingsTarget: (pct: number) => {

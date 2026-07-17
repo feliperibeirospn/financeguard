@@ -10,7 +10,7 @@ interface AdminPageProps {
   recorrencias: Recorrencia[];
   aiConfig?: { provider: AIProvider, apiKey: string };
   aiManageCategories: boolean;
-  backupConfig?: { dropboxToken?: string, dropboxAppKey?: string, backupPassword?: string, lastCloudBackup?: string };
+  backupConfig?: { dropboxToken?: string, dropboxAppKey?: string, dropboxUserEmail?: string, backupPassword?: string, lastCloudBackup?: string };
   isCloudSyncing: boolean;
   onUpdateSavingsTarget: (pct: number) => void;
   onUpdateCategories: (categories: Category[]) => void;
@@ -55,6 +55,13 @@ export const AdminPage = ({
   const [aiKey, setAiKey] = useState(aiConfig?.apiKey || '');
   const [backupPass, setBackupPass] = useState(backupConfig?.backupPassword || '');
 
+  const maskEmail = (email?: string) => {
+    if (!email) return '';
+    const [user, domain] = email.split('@');
+    if (user.length <= 2) return `***@${domain}`;
+    return `${user.substring(0, 2)}***${user.substring(user.length - 2)}@${domain}`;
+  };
+
   const handleSaveRec = () => {
     if (!recForm.descricao || !recForm.valor) return;
     onAddRecurring({ ...recForm, valor: parseFloat(recForm.valor), dia: Number(recForm.dia) });
@@ -93,11 +100,17 @@ export const AdminPage = ({
             <div className="flex justify-between items-center mb-2">
                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Status da Conexão</label>
                {backupConfig?.dropboxToken ? (
-                 <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg">✓ Conectado ao Dropbox</span>
+                 <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg">✓ Conectado</span>
                ) : (
                  <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded-lg">Desconectado</span>
                )}
             </div>
+
+            {backupConfig?.dropboxUserEmail && (
+              <p className="text-[10px] text-slate-400 font-bold mb-2 text-center">
+                Conta: <span className="text-blue-400">{maskEmail(backupConfig.dropboxUserEmail)}</span>
+              </p>
+            )}
 
             <button
               onClick={startDropboxAuth}

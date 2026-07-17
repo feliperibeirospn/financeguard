@@ -32,21 +32,22 @@ export default function App() {
 
   // Escuta o Deep Link no Mobile (Captura o retorno do Dropbox)
   useEffect(() => {
+    let sub: any;
     if (Capacitor.isNativePlatform()) {
-      const sub = CapApp.addListener('appUrlOpen', (data) => {
+      CapApp.addListener('appUrlOpen', (data) => {
         console.log('App abriu via URL:', data.url);
         if (data.url.includes('access_token')) {
           const token = extractToken(data.url);
           if (token) {
             handleUpdateBackupConfig(token);
-            // Pequeno delay antes de fechar o browser para evitar freeze no Android
             setTimeout(() => {
               Browser.close().catch(err => console.error('Erro ao fechar browser:', err));
             }, 500);
           }
         }
-      });
-      return () => { sub.remove(); };
+      }).then(handle => { sub = handle; });
+
+      return () => { if (sub) sub.remove(); };
     }
   }, [handleUpdateBackupConfig]);
 

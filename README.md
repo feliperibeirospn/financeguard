@@ -27,7 +27,7 @@ O **FinanceGuard Pro** redefine o gerenciamento financeiro moderno ao unir **Int
 ### 1. ☁️ Backup Híbrido & Gestão de Sessão (Novo!)
 Sincronize seus dados com o **Dropbox** de forma inteligente e segura.
 - **Cifragem Local**: O banco de dados é criptografado com sua **Senha Mestra** antes do upload.
-- **Identificação de Conta**: O app exibe qual conta está conectada através de e-mail mascarado (ex: `fe***ne@gmail.com`), preservando sua privacidade.
+- **Identificação de Conta**: O app exibe qual conta está conectada através de e-mail mascarado (ex: `fe****@example.com`), preservando sua privacidade.
 - **Login OAuth2 Automático**: Fluxo de autenticação moderno que detecta automaticamente o retorno do login e volta para o app sozinho.
 - **Deep Link Integration**: Sincronismo perfeito entre o navegador do celular e o aplicativo nativo.
 

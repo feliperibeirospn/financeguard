@@ -1,16 +1,16 @@
-# 🛡️ FinanceGuard Pro v1.3.0
+# 🛡️ FinanceGuard Pro v1.4.0
 
 > **Soberania Financeira na Palma da sua Mão.**
 > 
 > Aplicativo de finanças pessoais focado em **Privacidade Absoluta**, construído sob os princípios da **Clean Architecture** e portado para Android via **Capacitor**.
 
 [![Download APK](https://img.shields.io/badge/Download-APK%20Android-brightgreen?style=for-the-badge&logo=android)](https://github.com/feliperibeirospn/financeguard/releases)
-[![Version](https://img.shields.io/badge/Version-1.3.0--Stable-blue?style=flat-square)](https://github.com/feliperibeirospn/financeguard)
+[![Version](https://img.shields.io/badge/Version-1.4.0--Stable-blue?style=flat-square)](https://github.com/feliperibeirospn/financeguard)
 [![Security](https://img.shields.io/badge/Encryption-AES--256-orange?style=flat-square)](https://github.com/feliperibeirospn/financeguard)
 
 ---
 
-## 🌟 Diferenciais Estratégicos
+## 🌟 Diferenciais Estratégicos (v1.4.0)
 
 O **FinanceGuard Pro** redefine o gerenciamento financeiro moderno ao unir **Inteligência Artificial** de ponta com a segurança inabalável do **Offline-First**.
 
@@ -18,46 +18,39 @@ O **FinanceGuard Pro** redefine o gerenciamento financeiro moderno ao unir **Int
 - 🤖 **IA Agnóstica**: Escolha seu cérebro. Suporte nativo para **Groq (Llama 3.3)**, **Google Gemini** e **DeepSeek**.
 - 🏛️ **Clean Architecture**: Design de software desacoplado que garante manutenibilidade e escalabilidade profissional.
 - 💎 **Visual de Próxima Geração**: Estética *Glassmorphism* com camadas de transparência, desfoque e animações fluidas.
-- 📱 **Multiplataforma**: Experiência otimizada para Desktop e Mobile (Android) via Capacitor.
+- 📱 **Experiência Nativa**: Integração total com Android via Deep Links e navegação fluida.
 
 ---
 
 ## 🚀 Funcionalidades de Elite
 
-### 1. ☁️ Backup Híbrido & Criptografado (Fase 5)
-Sincronize seus dados com o **Dropbox** sem abrir mão da privacidade.
-- **Cifragem Local**: O banco de dados é criptografado com sua **Senha Mestra** ANTES de sair do dispositivo.
-- **Login OAuth2**: Fluxo de autenticação moderno e seguro (Login direto ou via API Key).
-- **Recuperação Instantânea**: Restaure seu ecossistema financeiro em qualquer novo dispositivo.
+### 1. ☁️ Backup Híbrido & Gestão de Sessão (Novo!)
+Sincronize seus dados com o **Dropbox** de forma inteligente e segura.
+- **Cifragem Local**: O banco de dados é criptografado com sua **Senha Mestra** antes do upload.
+- **Identificação de Conta**: O app exibe qual conta está conectada através de e-mail mascarado (ex: `fe***ne@gmail.com`), preservando sua privacidade.
+- **Login OAuth2 Automático**: Fluxo de autenticação moderno que detecta automaticamente o retorno do login e volta para o app sozinho.
+- **Deep Link Integration**: Sincronismo perfeito entre o navegador do celular e o aplicativo nativo.
 
 ### 2. 🤖 Ecossistema de IA Nativa
 - **Entrada Mágica**: Lançamentos via voz ou texto com processamento de linguagem natural (NLP).
-- **Insights Financeiros**: Consultoria diária proativa. A IA analisa seu comportamento de gastos e sugere otimizações reais.
-- **Auto-Categorização**: A IA aprende com seus gastos e pode criar categorias dinâmicas com ícones (Emojis) personalizados.
+- **Insights Financeiros**: Consultoria diária proativa baseada no seu comportamento de gastos.
+- **Categorização Inteligente**: Criação automática de categorias com sugestão de Emojis representativos.
 
 ### 3. 📅 Automação de Contas Fixas (Recorrências)
-Diga adeus ao preenchimento manual repetitivo.
-- **Gestão de Recorrências**: Cadastre aluguel, assinaturas (Netflix, Spotify) e contas mensais.
-- **Detecção de Pendências**: Banner inteligente no Dashboard avisa quando há contas fixas a serem lançadas no mês.
-- **Lançamento em Massa**: Gere todas as transações fixas do mês com apenas um clique.
-
-### 4. 📊 Dashboard & Analytics
-- **KPIs Dinâmicos**: Visão clara de Receitas, Despesas, Investimentos e Gastos no Cartão.
-- **Gráficos Adaptativos**: Composição mensal visual com Recharts.
-- **Motor de Parcelamento**: Divisão automática de compras parceladas com projeção de caixa futuro.
+- **Gestão de Recorrências**: Cadastre aluguel, assinaturas e contas mensais.
+- **Detecção Inteligente**: O Dashboard avisa proativamente sobre lançamentos pendentes no mês atual.
+- **Lançamento Express**: Gere todos os lançamentos recorrentes com um único toque.
 
 ---
 
 ## 📂 Arquitetura do Sistema (Clean Architecture)
 
-Seguimos o padrão de camadas para garantir que a regra de negócio seja independente de frameworks e UI:
-
 ```bash
 src/
-├── domain/         # 🧠 Coração do App: Entidades e Lógica Pura (Regras de Negócio)
-├── infrastructure/ # 🔌 Adaptadores: SQLite simulation, Crypto (AES-256), Cloud API
-├── application/    # ⚙️ Orquestradores: Serviços e lógica de aplicação
-└── presentation/   # 🎨 UI/UX: React, Tailwind, Hooks Reais, Componentes Glassmorphism
+├── domain/         # 🧠 Entidades e Casos de Uso (Regras Puras)
+├── infrastructure/ # 🔌 Adaptadores: SQLite simulation, Crypto (AES-256), Dropbox API
+├── application/    # ⚙️ Orquestradores: Lógica de Aplicação
+└── presentation/   # 🎨 UI/UX: React, Tailwind, Custom Hooks, Glassmorphism
 ```
 
 ---
@@ -66,23 +59,22 @@ src/
 
 - **Core**: React 18 + TypeScript (Strict Mode)
 - **Segurança**: Crypto-JS (AES-256)
-- **Cloud**: Dropbox SDK + Direct Fetch Integration
-- **IA**: Groq Cloud, Google Generative AI, DeepSeek API
-- **Estilo**: Tailwind CSS + Animate.css
+- **Cloud Interface**: Dropbox Direct API (Fetch) + Capacitor Browser/App
+- **IA Engines**: Groq Cloud, Google Generative AI, DeepSeek API
 - **Nativo**: Capacitor Framework
 
 ---
 
-## 📥 Guia de Instalação Profissional
+## 📥 Guia de Instalação
 
 ### 📱 Ambiente Android
-1. Certifique-se de ter o **JDK 17** e **Android Studio** configurados.
-2. Sincronize o ecossistema web:
+1. Certifique-se de ter o **JDK 17** e **Android Studio**.
+2. Sincronize o ecossistema:
    ```bash
    npm install --legacy-peer-deps
    npm run prod:android
    ```
-3. Compile e gere o binário (APK):
+3. Compile o binário final (APK):
    ```bash
    cd android
    .\gradlew assembleDebug
@@ -91,12 +83,13 @@ src/
 ---
 
 ## ⚖️ Compromisso com a Privacidade
-Este projeto foi desenvolvido sob a filosofia de que **seus dados financeiros são sagrados**. Não existem servidores intermediários, não coletamos telemetria e sua chave de criptografia nunca sai da sua cabeça ou do seu dispositivo.
+Este projeto foi desenvolvido sob a filosofia de que **seus dados financeiros são sagrados**. Não existem servidores intermediários e sua chave de criptografia nunca sai do seu dispositivo.
 
 ---
 
 ## 📜 Histórico de Versões
-- **v1.0.0**: Migração para Clean Architecture.
-- **v1.1.0**: Integração de IA e Voz.
-- **v1.2.0**: Lançamentos Recorrentes e UI Glassmorphism.
-- **v1.3.0**: Cloud Backup Criptografado (Dropbox) e melhorias de segurança.
+- **v1.0.0**: Clean Architecture Migration.
+- **v1.1.0**: AI & Voice Integration.
+- **v1.2.0**: Recurring Transactions & Glassmorphism.
+- **v1.3.0**: Cloud Backup & Security Fixes.
+- **v1.4.0**: Dropbox Session Tracking, Deep Links & UI Polish.

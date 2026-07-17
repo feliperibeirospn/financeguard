@@ -102,7 +102,7 @@ export default function App() {
           <section className="min-h-[400px]">{renderActiveTab()}</section>
         </div>
       </main>
-      <footer className="p-8 text-center text-slate-600 text-[10px] font-bold uppercase tracking-[0.4em]">&copy; 2026 FinanceGuard • Versão 1.3.0-Stable</footer>
+      <footer className="p-8 text-center text-slate-600 text-[10px] font-bold uppercase tracking-[0.4em]">&copy; 2026 FinanceGuard • Versão 1.4.0-Stable</footer>
       <Toast {...toast} />
     </div>
   );

@@ -230,16 +230,31 @@ export const useFinanceApp = () => {
     }
 
     setIsCloudSyncing(true);
-    addLog('INFRASTRUCTURE', 'Iniciando backup criptografado...');
+    addLog('INFRASTRUCTURE', 'Iniciando backup via API Direta...');
 
     try {
       const encrypted = encryptData(db, config.backupPassword);
-      const dbx = new Dropbox({ accessToken: config.dropboxToken });
-      await dbx.filesUpload({
-        path: '/financeguard_backup.enc',
-        contents: encrypted,
-        mode: { '.tag': 'overwrite' }
+
+      // MODO SEGURO: Usando fetch direto para ter controle total dos headers
+      const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.dropboxToken}`,
+          'Dropbox-API-Arg': JSON.stringify({
+            path: '/financeguard_backup.enc',
+            mode: 'overwrite',
+            autorename: false,
+            mute: true
+          }),
+          'Content-Type': 'application/octet-stream'
+        },
+        body: new TextEncoder().encode(encrypted)
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Dropbox API Error (${response.status}): ${errorText}`);
+      }
 
       const now = new Date().toLocaleString();
       setDb(prev => ({
@@ -248,9 +263,16 @@ export const useFinanceApp = () => {
       }));
       showToast('Backup enviado com sucesso!', 'success');
       addLog('INFRASTRUCTURE', `Cloud Backup concluído em ${now}`);
-    } catch (err) {
-      console.error(err);
-      showToast('Erro ao enviar para o Dropbox.', 'error');
+    } catch (err: any) {
+      console.error('Dropbox API Error:', err);
+      const errorMsg = err.message || 'Erro desconhecido no envio';
+      addLog('INFRASTRUCTURE', `Falha no Backup: ${errorMsg}`);
+      showToast('Erro no backup. Veja os Logs.', 'error');
+
+      // Alerta especial para debugar o 400
+      if (errorMsg.includes('400')) {
+        alert(`Detalhe do Erro 400: ${errorMsg}`);
+      }
     } finally {
       setIsCloudSyncing(false);
     }

@@ -1,21 +1,24 @@
 import { DropboxAuth } from 'dropbox';
+import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 
 // Sua chave oficial registrada no Dropbox Console
 const CLIENT_ID = 'npc2tq3cd3vhad6';
 
 /**
- * Retorna a URL de redirecionamento baseada no ambiente.
+ * Retorna a URL de redirecionamento.
+ * No Mobile, usamos o esquema customizado que o Android entende.
  */
 const getRedirectUri = () => {
-  if (window.location.origin.includes('localhost') && !window.location.port) {
-     return 'http://localhost/';
+  if (Capacitor.isNativePlatform()) {
+     return 'com.felipecleones.financeguard://oauth';
   }
   return window.location.origin + '/';
 };
 
 /**
- * Inicia o fluxo OAuth2 transparente para o usuário leigo.
- * Corrigido: Para response_type 'token', o token_access_type deve ser 'online'.
+ * Inicia o fluxo OAuth2.
+ * No Mobile, abre o navegador do sistema em vez de mudar a URL atual.
  */
 export const startDropboxAuth = async () => {
   const dbxAuth = new DropboxAuth({ clientId: CLIENT_ID });
@@ -25,29 +28,34 @@ export const startDropboxAuth = async () => {
     redirectUri,
     undefined,
     'token',
-    'online', // Alterado de 'offline' para 'online' para corrigir o erro de pedido inválido
+    'online',
     undefined,
     'none',
     false
   );
 
-  window.location.href = authUrl.toString();
+  const finalUrl = authUrl.toString();
+
+  if (Capacitor.isNativePlatform()) {
+    // Abre o navegador de forma que ele possa voltar para o app
+    await Browser.open({ url: finalUrl });
+  } else {
+    window.location.href = finalUrl;
+  }
 };
 
 /**
- * Captura o token da URL após o redirecionamento
+ * Captura o token de uma string (URL ou Hash)
+ */
+export const extractToken = (rawString: string): string | null => {
+  const hash = rawString.includes('#') ? rawString.split('#')[1] : rawString;
+  const params = new URLSearchParams(hash);
+  return params.get('access_token');
+};
+
+/**
+ * Captura o token da URL atual (Modo Web)
  */
 export const getDropboxTokenFromUrl = (): string | null => {
-  const hash = window.location.hash;
-  if (!hash) return null;
-
-  const params = new URLSearchParams(hash.substring(1));
-  const token = params.get('access_token');
-
-  if (token) {
-    window.history.replaceState({}, document.title, window.location.pathname);
-    return token;
-  }
-
-  return null;
+  return extractToken(window.location.hash.substring(1));
 };

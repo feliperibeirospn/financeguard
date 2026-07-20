@@ -23,11 +23,12 @@ export default function App() {
     activeTab, setActiveTab, selectedMonth, selectedYear, setSelectedMonth, setSelectedYear,
     isFormOpen, setIsFormOpen, isOnline, logs, db, filteredTransactions, summary, chartData,
     savingsTargetPct, toast, isAIAnalyzing, isCloudSyncing, aiInsights, aiManageCategories,
-    backupConfig, pendingRecurring, handleAddTransaction, handleDeleteTransaction, handleSyncData,
-    handleExportCSV, handleToggleOnline, handleProcessAICommand, handleGenerateInsights,
-    handleUpdateAIConfig, handleUpdateAIManageCategories, handleUpdateBackupConfig,
+    backupConfig, pendingRecurring, enableCreditCardStatement, cartoes,
+    handleAddTransaction, handleDeleteTransaction, handleSyncData, handleExportCSV, handleToggleOnline,
+    handleProcessAICommand, handleGenerateInsights, handleAddRecurring, handleDeleteRecurring, handleApplyRecurring,
     handleDropboxBackup, handleDropboxRestore, handleResetDatabase, handleUpdateSavingsTarget,
-    handleUpdateCategories, handleAddRecurring, handleDeleteRecurring, handleApplyRecurring,
+    handleUpdateCategories, handleUpdateAIConfig, handleUpdateAIManageCategories, handleUpdateBackupConfig,
+    handleUpdateCreditCardConfig, handleAddCard, handleDeleteCard
   } = useFinanceApp();
 
   // Escuta o Deep Link no Mobile (Captura o retorno do Dropbox)
@@ -35,7 +36,6 @@ export default function App() {
     let sub: any;
     if (Capacitor.isNativePlatform()) {
       CapApp.addListener('appUrlOpen', (data) => {
-        console.log('App abriu via URL:', data.url);
         if (data.url.includes('access_token')) {
           const token = extractToken(data.url);
           if (token) {
@@ -46,7 +46,6 @@ export default function App() {
           }
         }
       }).then(handle => { sub = handle; });
-
       return () => { if (sub) sub.remove(); };
     }
   }, [handleUpdateBackupConfig]);
@@ -56,7 +55,6 @@ export default function App() {
     const token = getDropboxTokenFromUrl();
     if (token) {
       handleUpdateBackupConfig(token);
-      // Limpa o hash da URL de forma segura
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [handleUpdateBackupConfig]);
@@ -65,7 +63,33 @@ export default function App() {
     switch (activeTab) {
       case 'dashboard': return <DashboardPage summary={summary} chartData={chartData} savingsTargetPct={savingsTargetPct} aiInsights={aiInsights} isAIAnalyzing={isAIAnalyzing} pendingRecurring={pendingRecurring} onRefreshInsights={() => handleGenerateInsights(true)} onApplyRecurring={handleApplyRecurring} />;
       case 'transacoes': return <ExtratoPage filteredTransactions={filteredTransactions} selectedMonth={selectedMonth} onDelete={handleDeleteTransaction} />;
-      case 'admin': return <AdminPage savingsTargetPct={savingsTargetPct} categories={db.categorias} recorrencias={db.recorrencias} aiConfig={db.config?.aiConfig} aiManageCategories={aiManageCategories} backupConfig={backupConfig} isCloudSyncing={isCloudSyncing} onUpdateSavingsTarget={handleUpdateSavingsTarget} onUpdateCategories={handleUpdateCategories} onUpdateAIConfig={handleUpdateAIConfig} onUpdateAIManageCategories={handleUpdateAIManageCategories} onUpdateBackupConfig={handleUpdateBackupConfig} onAddRecurring={handleAddRecurring} onDeleteRecurring={handleDeleteRecurring} onDropboxBackup={handleDropboxBackup} onDropboxRestore={handleDropboxRestore} onResetDatabase={handleResetDatabase} />;
+      case 'admin':
+        return (
+          <AdminPage
+            savingsTargetPct={savingsTargetPct}
+            categories={db.categorias}
+            recorrencias={db.recorrencias}
+            cartoes={cartoes}
+            enableCreditCardStatement={enableCreditCardStatement}
+            aiConfig={db.config?.aiConfig}
+            aiManageCategories={aiManageCategories}
+            backupConfig={backupConfig}
+            isCloudSyncing={isCloudSyncing}
+            onUpdateSavingsTarget={handleUpdateSavingsTarget}
+            onUpdateCategories={handleUpdateCategories}
+            onUpdateAIConfig={handleUpdateAIConfig}
+            onUpdateAIManageCategories={handleUpdateAIManageCategories}
+            onUpdateBackupConfig={handleUpdateBackupConfig}
+            onUpdateCreditCardConfig={handleUpdateCreditCardConfig}
+            onAddCard={handleAddCard}
+            onDeleteCard={handleDeleteCard}
+            onAddRecurring={handleAddRecurring}
+            onDeleteRecurring={handleDeleteRecurring}
+            onDropboxBackup={handleDropboxBackup}
+            onDropboxRestore={handleDropboxRestore}
+            onResetDatabase={handleResetDatabase}
+          />
+        );
       case 'sqlite': return <InspectorSQLitePage db={db} />;
       case 'architecture': return <CleanArchLogsPage logs={logs} />;
     }
@@ -96,7 +120,7 @@ export default function App() {
         <div className="flex-1">
           {isFormOpen && (
             <div className="mb-10 animate-in zoom-in-95 duration-300">
-              <NewTransactionForm onSubmit={handleAddTransaction} onClose={() => setIsFormOpen(false)} categories={db.categorias} onProcessAICommand={handleProcessAICommand} />
+              <NewTransactionForm onSubmit={handleAddTransaction} onClose={() => setIsFormOpen(false)} categories={db.categorias} cartoes={cartoes} onProcessAICommand={handleProcessAICommand} />
             </div>
           )}
           <section className="min-h-[400px]">{renderActiveTab()}</section>

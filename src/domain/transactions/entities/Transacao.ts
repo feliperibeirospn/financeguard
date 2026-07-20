@@ -43,4 +43,5 @@ export interface Transacao {
   /** Timestamp ms desde epoch — controle de versionamento local */
   atualizado_em: number;
   status_sincronismo: StatusSincronismo;
+  cartao_id?: string | null;
 }

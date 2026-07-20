@@ -18,13 +18,23 @@ export interface Recorrencia {
   forma_pagamento: string;
 }
 
+export interface CartaoCredito {
+  id: string;
+  nome: string;
+  diaFechamento: number;
+  diaVencimento: number;
+  cor: string;
+}
+
 export interface SqliteDatabase {
   categorias: typeof INITIAL_CATEGORIES;
   parcelamentos: Parcelamento[];
   transacoes: Transacao[];
   recorrencias: Recorrencia[];
+  cartoes: CartaoCredito[];
   config: {
     savingsTargetPct: number;
+    enableCreditCardStatement?: boolean;
     aiConfig?: {
       provider: AIProvider;
       apiKey: string;
@@ -81,6 +91,7 @@ export const getDefaultSeed = (): SqliteDatabase => {
       },
     ],
     recorrencias: [],
+    cartoes: [],
     config: {
       savingsTargetPct: 20,
     },
@@ -105,7 +116,10 @@ export const loadDb = (): SqliteDatabase | null => {
     if (data && !data.recorrencias) {
       data.recorrencias = [];
       console.log('Migração: Tabela de recorrencias adicionada ao banco local.');
-      saveDb(data); // Salva o banco corrigido
+    }
+    if (data && !data.cartoes) {
+      data.cartoes = [];
+      console.log('Migração: Tabela de cartoes adicionada.');
     }
 
     return data as SqliteDatabase;

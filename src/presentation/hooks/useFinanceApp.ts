@@ -11,6 +11,7 @@ import {
   type SqliteDatabase,
   type AIProvider,
   type Recorrencia,
+  type CartaoCredito,
 } from '../../infrastructure/datasources/storage';
 import { encryptData, decryptData } from '../../infrastructure/utils/crypto';
 import type { TabId } from '../components/ui/tabs';
@@ -40,6 +41,7 @@ export interface NewTransactionInput {
   paymentMethod: string;
   installments: number;
   date: string;
+  cartaoId?: string;
   newCategory?: any;
 }
 
@@ -66,6 +68,24 @@ export const useFinanceApp = () => {
   const [isAIAnalyzing, setIsAIAnalyzing] = useState(false);
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
 
+  // Lógica de fechamento de fatura multi-cartão
+  const getBillingMonth = useCallback((dateStr: string, formaPagamento: string, cartaoId?: string | null) => {
+    if (!db.config.enableCreditCardStatement || formaPagamento !== 'cartao') return new Date(dateStr);
+
+    // Busca o cartão específico ou usa o primeiro se não houver ID (fallback)
+    const card = cartaoId ? db.cartoes.find(c => c.id === cartaoId) : db.cartoes[0];
+    if (!card) return new Date(dateStr);
+
+    const date = new Date(dateStr);
+    const day = parseInt(dateStr.split('-')[2]);
+
+    if (day >= card.diaFechamento) {
+      return new Date(date.getFullYear(), date.getMonth() + 1, 1);
+    }
+
+    return date;
+  }, [db.config.enableCreditCardStatement, db.cartoes]);
+
   // Persistência automática
   useEffect(() => {
     saveDb(db);
@@ -90,10 +110,10 @@ export const useFinanceApp = () => {
   // ---------- Filtered + summary ----------
   const filteredTransactions: Transacao[] = useMemo(() => {
     return db.transacoes.filter((t) => {
-      const d = new Date(t.data);
-      return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+      const billingDate = getBillingMonth(t.data, t.forma_pagamento, t.cartao_id);
+      return billingDate.getMonth() === selectedMonth && billingDate.getFullYear() === selectedYear;
     });
-  }, [db.transacoes, selectedMonth, selectedYear]);
+  }, [db.transacoes, selectedMonth, selectedYear, getBillingMonth]);
 
   const summary: FinanceSummary = useMemo(() => {
     let income = 0; let expenses = 0; let investimento = 0; let creditCard = 0;
@@ -131,7 +151,7 @@ export const useFinanceApp = () => {
   // ---------- Ações ----------
   const handleAddTransaction = useCallback((input: NewTransactionInput) => {
     try {
-      const { description, amount, category, paymentMethod, installments, date, newCategory } = input;
+      const { description, amount, category, paymentMethod, installments, date, cartaoId, newCategory } = input;
       if (newCategory) {
         setDb(prev => ({ ...prev, categorias: [...prev.categorias, newCategory] }));
         addLog('DOMAIN', `Nova categoria "${newCategory.name}" criada.`);
@@ -141,11 +161,13 @@ export const useFinanceApp = () => {
       const finalAmount = isIncome ? Math.abs(amount) : -Math.abs(amount);
       const newTxId = `t_${Date.now()}`;
       const syncStatus: Transacao['status_sincronismo'] = isOnline ? 'SINCRONIZADO' : 'PENDENTE';
+
       if (paymentMethod === 'cartao' && installments > 1) {
         const { parcelamento, parcelas } = generateInstallments({ descricao: description, valorTotal: finalAmount, qtdParcelas: installments, categoriaId: category, dataInicio: date, statusSincronismo: syncStatus, timestamp: Date.now(), idPrefix: newTxId });
-        setDb((prev) => ({ ...prev, parcelamentos: [...prev.parcelamentos, parcelamento], transacoes: [...parcelas, ...prev.transacoes] }));
+        const parcelasComCartao = parcelas.map(p => ({ ...p, cartao_id: cartaoId }));
+        setDb((prev) => ({ ...prev, parcelamentos: [...prev.parcelamentos, parcelamento], transacoes: [...parcelasComCartao, ...prev.transacoes] }));
       } else {
-        const tx: Transacao = { id: newTxId, id_remoto: generateUUID(), descricao: description, valor: finalAmount, categoria_id: category, data: date, forma_pagamento: paymentMethod as any, parcelamento_id: null, atualizado_em: Date.now(), status_sincronismo: syncStatus };
+        const tx: Transacao = { id: newTxId, id_remoto: generateUUID(), descricao: description, valor: finalAmount, categoria_id: category, data: date, forma_pagamento: paymentMethod as any, parcelamento_id: null, atualizado_em: Date.now(), status_sincronismo: syncStatus, cartao_id: cartaoId };
         setDb((prev) => ({ ...prev, transacoes: [tx, ...prev.transacoes] }));
       }
       showToast('Lançamento salvo!', 'success');
@@ -227,120 +249,46 @@ export const useFinanceApp = () => {
       showToast('Defina uma senha de backup.', 'error');
       return;
     }
-
     setIsCloudSyncing(true);
     addLog('INFRASTRUCTURE', 'Iniciando backup via API Direta...');
-
     try {
       const encrypted = encryptData(db, config.backupPassword);
-
-      // MODO SEGURO: Usando fetch direto para ter controle total dos headers
       const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${config.dropboxToken}`,
-          'Dropbox-API-Arg': JSON.stringify({
-            path: '/financeguard_backup.enc',
-            mode: 'overwrite',
-            autorename: false,
-            mute: true
-          }),
+          'Dropbox-API-Arg': JSON.stringify({ path: '/financeguard_backup.enc', mode: 'overwrite', autorename: false, mute: true }),
           'Content-Type': 'application/octet-stream'
         },
         body: new TextEncoder().encode(encrypted)
       });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Dropbox API Error (${response.status}): ${errorText}`);
       }
-
       const now = new Date().toLocaleString();
-      setDb(prev => ({
-        ...prev,
-        config: { ...prev.config, backupConfig: { ...prev.config.backupConfig!, lastCloudBackup: now } }
-      }));
-      showToast('Backup enviado com sucesso!', 'success');
-      addLog('INFRASTRUCTURE', `Cloud Backup concluído em ${now}`);
+      setDb(prev => ({ ...prev, config: { ...prev.config, backupConfig: { ...prev.config.backupConfig!, lastCloudBackup: now } } }));
+      showToast('Backup enviado!', 'success');
     } catch (err: any) {
-      console.error('Dropbox API Error:', err);
-      const errorMsg = err.message || 'Erro desconhecido no envio';
-      addLog('INFRASTRUCTURE', `Falha no Backup: ${errorMsg}`);
-      showToast('Erro no backup. Veja os Logs.', 'error');
-
-      // Alerta especial para debugar o 400
-      if (errorMsg.includes('400')) {
-        alert(`Detalhe do Erro 400: ${errorMsg}`);
-      }
-    } finally {
-      setIsCloudSyncing(false);
-    }
+      showToast('Erro no backup.', 'error');
+    } finally { setIsCloudSyncing(false); }
   };
 
   const handleDropboxRestore = async (inputPassword?: string) => {
     const config = db.config?.backupConfig;
     const password = inputPassword || config?.backupPassword;
-
-    if (!config?.dropboxToken) {
-      showToast('Dropbox não conectado.', 'error');
-      return;
-    }
-    if (!password) {
-      showToast('Senha necessária.', 'error');
-      return;
-    }
-
+    if (!config?.dropboxToken || !password) { showToast('Erro no restore.', 'error'); return; }
     setIsCloudSyncing(true);
-    addLog('INFRASTRUCTURE', 'Baixando backup via API Direta...');
-
     try {
-      // MODO SEGURO: Usando fetch direto para download
       const response = await fetch('https://content.dropboxapi.com/2/files/download', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${config.dropboxToken}`,
-          'Dropbox-API-Arg': JSON.stringify({
-            path: '/financeguard_backup.enc'
-          })
-        }
+        headers: { 'Authorization': `Bearer ${config.dropboxToken}`, 'Dropbox-API-Arg': JSON.stringify({ path: '/financeguard_backup.enc' }) }
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Dropbox API Error (${response.status}): ${errorText}`);
-      }
-
+      if (!response.ok) throw new Error();
       const ciphertext = await response.text();
       const decrypted = decryptData(ciphertext, password);
-
-      if (decrypted) {
-        setDb(decrypted);
-        showToast('Dados restaurados com sucesso!', 'success');
-        addLog('DOMAIN', 'Base de dados substituída via Cloud Restore.');
-      } else {
-        showToast('Senha de backup incorreta.', 'error');
-        addLog('INFRASTRUCTURE', 'Falha na descriptografia: Senha inválida.');
-        alert('Erro: Senha de backup incorreta ou arquivo corrompido.');
-      }
-    } catch (err: any) {
-      console.error('Dropbox API Restore Error:', err);
-      const errorMsg = err.message || 'Erro desconhecido ao baixar';
-      addLog('INFRASTRUCTURE', `Falha no Restore: ${errorMsg}`);
-
-      let userMsg = 'Erro ao baixar backup.';
-      if (errorMsg.includes('404') || errorMsg.includes('path/not_found')) {
-        userMsg = 'Erro: Nenhum backup encontrado na sua conta.';
-      } else if (errorMsg.includes('401')) {
-        userMsg = 'Erro: Conexão expirada. Refaça o login.';
-      } else if (errorMsg.includes('insufficient_scope')) {
-        userMsg = 'Erro: Falta permissão de leitura no Dropbox.';
-      }
-
-      showToast(userMsg, 'error');
-      alert(`Detalhe do Erro no Restore: ${errorMsg}`);
-    } finally {
-      setIsCloudSyncing(false);
-    }
+      if (decrypted) { setDb(decrypted); showToast('Restaurado!', 'success'); } else { showToast('Senha incorreta.', 'error'); }
+    } catch (err: any) { showToast('Erro no restore.', 'error'); } finally { setIsCloudSyncing(false); }
   };
 
   // ---------- IA Core ----------
@@ -401,6 +349,8 @@ export const useFinanceApp = () => {
     aiInsights: db.config?.lastAIAnalysis?.insights || [],
     aiManageCategories: db.config?.aiManageCategories || false,
     backupConfig: db.config?.backupConfig,
+    enableCreditCardStatement: db.config?.enableCreditCardStatement || false,
+    cartoes: db.cartoes || [],
     handleAddTransaction, handleDeleteTransaction, handleSyncData, handleExportCSV, handleToggleOnline,
     handleProcessAICommand, handleGenerateInsights, handleAddRecurring, handleDeleteRecurring, handleApplyRecurring,
     handleDropboxBackup, handleDropboxRestore,
@@ -410,37 +360,26 @@ export const useFinanceApp = () => {
     },
     handleUpdateBackupConfig: async (token?: string, password?: string, appKey?: string) => {
       let email = undefined;
-
-      // Se um novo token foi fornecido, buscar o e-mail do usuário no Dropbox
       if (token) {
         try {
-          const response = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (response.ok) {
-            const userData = await response.json();
-            email = userData.email;
-          }
-        } catch (e) {
-          console.error('Erro ao buscar e-mail do Dropbox:', e);
-        }
+          const response = await fetch('https://api.dropboxapi.com/2/users/get_current_account', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+          if (response.ok) { email = (await response.json()).email; }
+        } catch (e) {}
       }
-
-      setDb(prev => ({
-        ...prev,
-        config: {
-          ...prev.config,
-          backupConfig: {
-            ...(prev.config.backupConfig || {}),
-            ...(token !== undefined ? { dropboxToken: token } : {}),
-            ...(password !== undefined ? { backupPassword: password } : {}),
-            ...(appKey !== undefined ? { dropboxAppKey: appKey } : {}),
-            ...(email !== undefined ? { dropboxUserEmail: email } : {})
-          }
-        }
-      }));
-      showToast('Configurações salvas!', 'success');
+      setDb(prev => ({ ...prev, config: { ...prev.config, backupConfig: { ...(prev.config.backupConfig || {}), ...(token !== undefined ? { dropboxToken: token } : {}), ...(password !== undefined ? { backupPassword: password } : {}), ...(appKey !== undefined ? { dropboxAppKey: appKey } : {}), ...(email !== undefined ? { dropboxUserEmail: email } : {}) } } }));
+      showToast('Salvo!', 'success');
+    },
+    handleUpdateCreditCardConfig: (enabled: boolean) => {
+      setDb(prev => ({ ...prev, config: { ...prev.config, enableCreditCardStatement: enabled } }));
+      showToast('Configuração salva!', 'success');
+    },
+    handleAddCard: (card: Omit<CartaoCredito, 'id'>) => {
+      setDb(prev => ({ ...prev, cartoes: [...prev.cartoes, { ...card, id: `card_${Date.now()}` }] }));
+      showToast('Cartão adicionado!', 'success');
+    },
+    handleDeleteCard: (id: string) => {
+      setDb(prev => ({ ...prev, cartoes: prev.cartoes.filter(c => c.id !== id) }));
+      showToast('Cartão removido.', 'success');
     },
     handleResetDatabase: () => { setDb(getDefaultSeed()); showToast('Resetado.', 'success'); },
     handleUpdateSavingsTarget: (pct: number) => {
@@ -453,7 +392,7 @@ export const useFinanceApp = () => {
     },
     handleUpdateAIManageCategories: (active: boolean) => {
       setDb(prev => ({ ...prev, config: { ...prev.config, aiManageCategories: active } }));
-      showToast(active ? 'IA gerencia categorias!' : 'IA usa apenas existentes.', 'success');
+      showToast(active ? 'IA gerencia!' : 'IA passiva.', 'success');
     }
   };
 };

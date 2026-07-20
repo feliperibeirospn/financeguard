@@ -120,7 +120,14 @@ export default function App() {
         <div className="flex-1">
           {isFormOpen && (
             <div className="mb-10 animate-in zoom-in-95 duration-300">
-              <NewTransactionForm onSubmit={handleAddTransaction} onClose={() => setIsFormOpen(false)} categories={db.categorias} cartoes={cartoes} onProcessAICommand={handleProcessAICommand} />
+              <NewTransactionForm
+                onSubmit={handleAddTransaction}
+                onClose={() => setIsFormOpen(false)}
+                categories={db.categorias}
+                cartoes={cartoes}
+                enableCreditCardStatement={enableCreditCardStatement}
+                onProcessAICommand={handleProcessAICommand}
+              />
             </div>
           )}
           <section className="min-h-[400px]">{renderActiveTab()}</section>

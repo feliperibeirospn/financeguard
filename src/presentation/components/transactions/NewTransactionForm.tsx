@@ -20,10 +20,18 @@ interface NewTransactionFormProps {
   onClose: () => void;
   categories: Category[];
   cartoes?: CartaoCredito[];
+  enableCreditCardStatement?: boolean;
   onProcessAICommand: (text: string) => Promise<any>;
 }
 
-export const NewTransactionForm = ({ onSubmit, onClose, categories, cartoes = [], onProcessAICommand }: NewTransactionFormProps) => {
+export const NewTransactionForm = ({
+  onSubmit,
+  onClose,
+  categories,
+  cartoes = [],
+  enableCreditCardStatement = false,
+  onProcessAICommand
+}: NewTransactionFormProps) => {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState(categories[0]?.id || '');
@@ -40,58 +48,29 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, cartoes = []
 
   const recognitionRef = useRef<any>(null);
 
-  // Inicialização do reconhecimento de voz melhorada
   const initRecognition = () => {
     // @ts-ignore
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return null;
-
     const recognition = new SpeechRecognition();
     recognition.lang = 'pt-BR';
-
-    // CONFIGURAÇÃO CRÍTICA:
-    // continuous: true impede que o microfone feche sozinho após uma pausa curta
     recognition.continuous = true;
-    // interimResults: false foca apenas no resultado final processado
     recognition.interimResults = false;
-    // Precisão máxima
     recognition.maxAlternatives = 1;
 
-    recognition.onstart = () => {
-      setIsListening(true);
-      console.log('Microfone ativado...');
-    };
-
+    recognition.onstart = () => setIsListening(true);
     recognition.onresult = (event: any) => {
       let finalTranscript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        }
+        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
       }
-      if (finalTranscript) {
-        setAiText(prev => (prev ? prev + ' ' + finalTranscript : finalTranscript));
-      }
+      if (finalTranscript) setAiText(prev => (prev ? prev + ' ' + finalTranscript : finalTranscript));
     };
-
-    recognition.onerror = (event: any) => {
-      console.error('Erro no microfone:', event.error);
-      setIsListening(false);
-      if (event.error === 'not-allowed') {
-        alert('Permissão de microfone negada.');
-      }
-    };
-
+    recognition.onerror = () => setIsListening(false);
     recognition.onend = () => {
-      // Se parou sozinho mas o estado ainda diz que devia estar ouvindo, reiniciamos
-      // Isso acontece em alguns navegadores Android após silêncio longo
-      if (isListening) {
-        try { recognition.start(); } catch(e) {}
-      } else {
-        setIsListening(false);
-      }
+      if (isListening) { try { recognition.start(); } catch(e) {} }
+      else { setIsListening(false); }
     };
-
     return recognition;
   };
 
@@ -99,25 +78,16 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, cartoes = []
     if (isListening) {
       setIsListening(false);
       if (recognitionRef.current) {
-        recognitionRef.current.onend = null; // Remove o auto-restart
+        recognitionRef.current.onend = null;
         recognitionRef.current.stop();
       }
       return;
     }
-
     setAiText('');
     const rec = initRecognition();
-    if (!rec) {
-      alert('Seu navegador ou dispositivo não suporta comandos de voz.');
-      return;
-    }
+    if (!rec) { alert('Voz não suportada.'); return; }
     recognitionRef.current = rec;
-    try {
-      rec.start();
-    } catch (err) {
-      console.error('Falha ao iniciar voz:', err);
-      setIsListening(false);
-    }
+    try { rec.start(); } catch (err) { setIsListening(false); }
   };
 
   useEffect(() => {
@@ -130,18 +100,10 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, cartoes = []
   }, []);
 
   const handleAIProcess = async () => {
-    if (isListening) {
-      setIsListening(false);
-      if (recognitionRef.current) {
-        recognitionRef.current.onend = null;
-        recognitionRef.current.stop();
-      }
-    }
-
+    if (isListening) { setIsListening(false); if (recognitionRef.current) { recognitionRef.current.onend = null; recognitionRef.current.stop(); } }
     if (!aiText.trim()) return;
     setIsAIProcessing(true);
     setSuggestedCategory(null);
-
     try {
       const data = await onProcessAICommand(aiText);
       if (data) {
@@ -157,16 +119,10 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, cartoes = []
           const newCat: Category = { id: `cat_${Date.now()}`, ...data.suggestedCategory, icon: finalIcon };
           setSuggestedCategory(newCat);
           setCategory(newCat.id);
-        } else {
-          setCategory(data.category || category);
-        }
+        } else { setCategory(data.category || category); }
         setAiText('');
       }
-    } catch (err: any) {
-      alert(err.message || 'Erro IA');
-    } finally {
-      setIsAIProcessing(false);
-    }
+    } catch (err: any) { alert(err.message || 'Erro IA'); } finally { setIsAIProcessing(false); }
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -179,7 +135,7 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, cartoes = []
       paymentMethod,
       installments,
       date,
-      cartaoId: paymentMethod === 'cartao' ? cartaoId : undefined,
+      cartaoId: (paymentMethod === 'cartao' && enableCreditCardStatement) ? cartaoId : undefined,
       newCategory: suggestedCategory || undefined
     });
     setDescription(''); setAmount(''); setInstallments(1); setSuggestedCategory(null);
@@ -188,10 +144,7 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, cartoes = []
   return (
     <div className="glass-card p-6 rounded-[2.5rem] border border-white/10 shadow-2xl animate-in zoom-in-95 duration-300">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="font-black text-white text-lg tracking-tight flex items-center gap-3">
-          <div className="p-2 bg-indigo-600 rounded-xl"><PlusIcon className="size-5 text-white" /></div>
-          Nova Movimentação
-        </h3>
+        <h3 className="font-black text-white text-lg tracking-tight flex items-center gap-3"><div className="p-2 bg-indigo-600 rounded-xl"><PlusIcon className="size-5 text-white" /></div>Nova Movimentação</h3>
         <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl text-slate-400 transition-all"><XIcon className="size-5" /></button>
       </div>
 
@@ -199,46 +152,16 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, cartoes = []
         <label className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 block">Entrada Mágica (IA)</label>
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <input
-              type="text"
-              placeholder={isListening ? "Ouvindo... Clique no mic para parar" : "Ex: 'Gastei 50 no BK hoje'"}
-              value={aiText}
-              onChange={(e) => setAiText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAIProcess()}
-              className={`w-full bg-indigo-500/5 border p-4 pl-12 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm transition-all ${
-                isListening ? 'border-rose-500 ring-4 ring-rose-500/10' : 'border-indigo-500/20'
-              }`}
-            />
+            <input type="text" placeholder={isListening ? "Ouvindo..." : "Ex: 'Gastei 50 no BK hoje'"} value={aiText} onChange={(e) => setAiText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAIProcess()} className={`w-full bg-indigo-500/5 border p-4 pl-12 rounded-2xl focus:border-indigo-500 outline-none text-white text-sm transition-all ${isListening ? 'border-rose-500' : 'border-indigo-500/20'}`} />
             <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-indigo-500/50" />
           </div>
-          <button
-            type="button"
-            onClick={handleVoiceInput}
-            className={`p-4 rounded-2xl border transition-all ${
-              isListening ? 'bg-rose-500 text-white animate-pulse border-rose-400' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20'
-            }`}
-          >
-            {isListening ? <MicOff className="size-5" /> : <Mic className="size-5" />}
-          </button>
-          <button
-            type="button"
-            onClick={handleAIProcess}
-            disabled={isAIProcessing || !aiText.trim()}
-            className="btn-primary px-6 rounded-2xl flex items-center justify-center disabled:opacity-50"
-          >
-            {isAIProcessing ? <Loader2 className="size-5 animate-spin" /> : 'Processar'}
-          </button>
+          <button type="button" onClick={handleVoiceInput} className={`p-4 rounded-2xl border ${isListening ? 'bg-rose-500' : 'bg-indigo-500/10'}`}>{isListening ? <MicOff className="size-5" /> : <Mic className="size-5" />}</button>
+          <button type="button" onClick={handleAIProcess} disabled={isAIProcessing || !aiText.trim()} className="btn-primary px-6 rounded-2xl">{isAIProcessing ? <Loader2 className="size-5 animate-spin" /> : 'Processar'}</button>
         </div>
       </div>
 
       {suggestedCategory && (
-        <div className="mb-6 p-4 bg-violet-500/20 border border-violet-500/30 rounded-2xl flex items-center gap-3 animate-in slide-in-from-left-4">
-          <AlertCircle className="size-5 text-violet-400" />
-          <div className="flex-1">
-            <p className="text-xs font-bold text-white">IA sugere criar categoria: {suggestedCategory.icon} {suggestedCategory.name}</p>
-          </div>
-          <button onClick={() => setSuggestedCategory(null)} className="text-[10px] font-black text-rose-400 uppercase">Ignorar</button>
-        </div>
+        <div className="mb-6 p-4 bg-violet-500/20 border border-violet-500/30 rounded-2xl flex items-center gap-3"><AlertCircle className="size-5 text-violet-400" /><div className="flex-1"><p className="text-xs font-bold text-white">IA sugere criar categoria: {suggestedCategory.icon} {suggestedCategory.name}</p></div><button onClick={() => setSuggestedCategory(null)} className="text-[10px] font-black text-rose-400 uppercase">Ignorar</button></div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -254,17 +177,24 @@ export const NewTransactionForm = ({ onSubmit, onClose, categories, cartoes = []
             <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Categoria</label><select className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl text-white text-sm" value={category} onChange={(e) => setCategory(e.target.value)}>{suggestedCategory && <option value={suggestedCategory.id}>{suggestedCategory.icon} {suggestedCategory.name}</option>}{categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>)}</select></div>
             <div className="grid grid-cols-2 gap-4">
               <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Pagamento</label><select className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl text-white text-sm" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>{PAYMENT_METHODS.map((pm) => <option key={pm.id} value={pm.id}>{pm.name}</option>)}</select></div>
+
               {paymentMethod === 'cartao' ? (
-                <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Qual Cartão?</label><select className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl text-white text-sm" value={cartaoId} onChange={(e) => setCartaoId(e.target.value)}>{cartoes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
+                enableCreditCardStatement ? (
+                  <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Qual Cartão?</label><select className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl text-white text-sm" value={cartaoId} onChange={(e) => setCartaoId(e.target.value)}>{cartoes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
+                ) : (
+                  <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Parcelas</label><input type="number" min="1" className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl text-white text-sm font-bold" value={installments} onChange={(e) => setInstallments(parseInt(e.target.value) || 1)} /></div>
+                )
               ) : (
                 <div className="flex flex-col justify-end"><div className="bg-slate-900/40 border border-white/5 text-[9px] font-black text-slate-600 uppercase rounded-2xl p-4 text-center">À Vista</div></div>
               )}
             </div>
           </div>
         </div>
-        {paymentMethod === 'cartao' && (
+
+        {paymentMethod === 'cartao' && enableCreditCardStatement && (
            <div className="max-w-xs"><label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Parcelas</label><input type="number" min="1" className="w-full bg-slate-800/50 border border-white/5 p-4 rounded-2xl text-white text-sm font-bold" value={installments} onChange={(e) => setInstallments(parseInt(e.target.value) || 1)} /></div>
         )}
+
         <div className="flex justify-end pt-4"><button type="submit" className="btn-primary px-8 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest">Confirmar Lançamento</button></div>
       </form>
     </div>

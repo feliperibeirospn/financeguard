@@ -40,7 +40,6 @@ export const NewTransactionForm = ({
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [cartaoId, setCartaoId] = useState(cartoes[0]?.id || '');
 
-  // IA States
   const [aiText, setAiText] = useState('');
   const [isAIProcessing, setIsAIProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -114,66 +113,105 @@ export const NewTransactionForm = ({
   };
 
   return (
-    <div className="glass-card p-6 md:p-10 rounded-[3rem] shadow-2xl animate-in zoom-in-95 duration-500">
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-indigo-500 dark:bg-indigo-600 rounded-[1.2rem] shadow-lg shadow-indigo-500/30">
-            <PlusIcon className="size-6 text-white" />
+    <div className="glass-card p-8 md:p-12 rounded-[3.5rem] shadow-2xl animate-in zoom-in-95 duration-500 border-indigo-500/20">
+      <div className="flex justify-between items-center mb-10">
+        <div className="flex items-center gap-5">
+          <div className="p-4 bg-indigo-600 rounded-2xl shadow-xl shadow-indigo-600/30">
+            <PlusIcon className="size-7 text-white" />
           </div>
-          <h3 className="font-black text-slate-800 dark:text-white text-xl tracking-tight">Nova Movimentação</h3>
+          <div>
+            <h3 className="font-black text-main text-2xl tracking-tighter uppercase italic leading-none mb-1">Nova Entrada</h3>
+            <p className="text-[10px] text-dim font-black uppercase tracking-widest">Registre sua movimentação financeira</p>
+          </div>
         </div>
-        <button onClick={onClose} className="p-2.5 hover:bg-slate-100 dark:hover:bg-white/5 rounded-2xl text-slate-400 transition-all">
+        <button onClick={onClose} className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-rose-500/10 rounded-2xl text-dim hover:text-rose-500 transition-all active:scale-90 border border-slate-200 dark:border-white/5">
           <XIcon className="size-6" />
         </button>
       </div>
 
-      <div className="mb-10 space-y-4">
-        <label className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] ml-1">Entrada Inteligente</label>
-        <div className="flex gap-3">
+      <div className="mb-12 space-y-4">
+        <label className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] ml-2">Comando de Voz / Texto IA</label>
+        <div className="flex gap-4">
           <div className="relative flex-1 group">
             <input
               type="text"
-              placeholder={isListening ? "Te ouvindo..." : "Diga ou digite o gasto..."}
+              placeholder={isListening ? "Processando áudio..." : "O que você comprou hoje?"}
               value={aiText}
               onChange={(e) => setAiText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAIProcess()}
-              className={`input-field pl-12 h-14 ${isListening ? 'ring-4 ring-rose-500/10 border-rose-500' : ''}`}
+              className={`input-field pl-14 h-16 text-lg ${isListening ? 'ring-4 ring-rose-500/20 border-rose-500' : ''}`}
             />
-            <Sparkles className={`absolute left-4 top-1/2 -translate-y-1/2 size-5 transition-colors ${isListening ? 'text-rose-500' : 'text-indigo-400 opacity-50 group-focus-within:opacity-100'}`} />
+            <Sparkles className={`absolute left-5 top-1/2 -translate-y-1/2 size-6 transition-colors ${isListening ? 'text-rose-500 animate-pulse' : 'text-indigo-400 group-focus-within:text-indigo-600'}`} />
           </div>
-          <button type="button" onClick={handleVoiceInput} className={`p-4 rounded-2xl transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-500/20' : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'}`}>
+          <button type="button" onClick={handleVoiceInput} className={`p-5 rounded-2xl transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse shadow-xl shadow-rose-500/30' : 'btn-secondary'}`}>
             {isListening ? <MicOff className="size-6" /> : <Mic className="size-6" />}
           </button>
-          <button type="button" onClick={handleAIProcess} disabled={isAIProcessing || !aiText.trim()} className="btn-primary h-14 px-8 hidden md:flex items-center justify-center">
-            {isAIProcessing ? <Loader2 className="size-5 animate-spin" /> : 'Sugerir'}
+          <button type="button" onClick={handleAIProcess} disabled={isAIProcessing || !aiText.trim()} className="btn-primary h-16 px-10 hidden md:flex items-center justify-center">
+            {isAIProcessing ? <Loader2 className="size-6 animate-spin" /> : 'Sugerir'}
           </button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <div><label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 mb-2 block">Descrição</label><input type="text" className="input-field" value={description} onChange={(e) => setDescription(e.target.value)} required /></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 mb-2 block">Valor (R$)</label><input type="number" step="0.01" className="input-field font-bold text-indigo-600 dark:text-indigo-400" value={amount} onChange={(e) => setAmount(e.target.value)} required /></div>
-              <div><label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 mb-2 block">Data</label><input type="date" className="input-field" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+      <form onSubmit={handleSubmit} className="space-y-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="space-y-8">
+            <div>
+              <label className="text-[10px] font-black text-sub uppercase tracking-widest ml-2 mb-3 block">Descrição da Atividade</label>
+              <input type="text" className="input-field h-16" value={description} onChange={(e) => setDescription(e.target.value)} required placeholder="Ex: Supermercado Semanal" />
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="text-[10px] font-black text-sub uppercase tracking-widest ml-2 mb-3 block">Valor (R$)</label>
+                <input type="number" step="0.01" className="input-field h-16 font-black text-xl text-indigo-600 dark:text-indigo-400" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-sub uppercase tracking-widest ml-2 mb-3 block">Data</label>
+                <input type="date" className="input-field h-16 uppercase font-bold" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
             </div>
           </div>
-          <div className="space-y-6">
-            <div><label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 mb-2 block">Categoria</label><select className="input-field appearance-none cursor-pointer" value={category} onChange={(e) => setCategory(e.target.value)}>{suggestedCategory && <option value={suggestedCategory.id}>{suggestedCategory.icon} {suggestedCategory.name} (IA)</option>}{categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>)}</select></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 mb-2 block">Pagamento</label><select className="input-field appearance-none cursor-pointer" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>{PAYMENT_METHODS.map((pm) => <option key={pm.id} value={pm.id}>{pm.name}</option>)}</select></div>
+          <div className="space-y-8">
+            <div>
+              <label className="text-[10px] font-black text-sub uppercase tracking-widest ml-2 mb-3 block">Categoria Selecionada</label>
+              <select className="input-field h-16 appearance-none cursor-pointer font-bold" value={category} onChange={(e) => setCategory(e.target.value)}>
+                {suggestedCategory && <option value={suggestedCategory.id}>{suggestedCategory.icon} {suggestedCategory.name} (Sugerido)</option>}
+                {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="text-[10px] font-black text-sub uppercase tracking-widest ml-2 mb-3 block">Método</label>
+                <select className="input-field h-16 appearance-none cursor-pointer font-bold uppercase tracking-tighter" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                  {PAYMENT_METHODS.map((pm) => <option key={pm.id} value={pm.id}>{pm.name}</option>)}
+                </select>
+              </div>
               {paymentMethod === 'cartao' ? (
                 enableCreditCardStatement ? (
-                  <div><label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 mb-2 block">Qual Cartão?</label><select className="input-field appearance-none cursor-pointer" value={cartaoId} onChange={(e) => setCartaoId(e.target.value)}>{cartoes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
+                  <div>
+                    <label className="text-[10px] font-black text-sub uppercase tracking-widest ml-2 mb-3 block">Cartão</label>
+                    <select className="input-field h-16 appearance-none cursor-pointer font-bold" value={cartaoId} onChange={(e) => setCartaoId(e.target.value)}>
+                      {cartoes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                    </select>
+                  </div>
                 ) : (
-                  <div><label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 mb-2 block">Parcelas</label><input type="number" min="1" className="input-field font-bold" value={installments} onChange={(e) => setInstallments(parseInt(e.target.value) || 1)} /></div>
+                  <div>
+                    <label className="text-[10px] font-black text-sub uppercase tracking-widest ml-2 mb-3 block">Parcelas</label>
+                    <input type="number" min="1" className="input-field h-16 font-black" value={installments} onChange={(e) => setInstallments(parseInt(e.target.value) || 1)} />
+                  </div>
                 )
-              ) : <div className="flex flex-col justify-end"><div className="bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-white/5 text-[9px] font-black text-slate-400 uppercase rounded-2xl p-4 text-center">Pagamento à Vista</div></div>}
+              ) : (
+                <div className="flex flex-col justify-end">
+                  <div className="bg-indigo-500/5 dark:bg-slate-800/40 border-2 border-dashed border-indigo-500/20 text-[10px] font-black text-indigo-500 uppercase tracking-widest rounded-2xl h-16 flex items-center justify-center text-center px-2 leading-tight">
+                    Pagamento à Vista
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
-        <div className="flex justify-end pt-4"><button type="submit" className="btn-primary w-full md:w-auto shadow-xl shadow-indigo-500/30">Confirmar Lançamento</button></div>
+        <div className="flex justify-end pt-6">
+          <button type="submit" className="btn-primary w-full md:w-auto h-20 px-16 text-lg shadow-2xl">Confirmar Registro</button>
+        </div>
       </form>
     </div>
   );

@@ -35,7 +35,6 @@ export default function App() {
   const { loadData, cartoes, handleAddTransaction, handleExportCSV, handleSyncData } = useTransactionStore();
   const { theme, toggleTheme } = useThemeStore();
 
-  // Auto-Sync ao Fechar ou Esconder o app (Mobile/PWA)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
@@ -73,7 +72,6 @@ export default function App() {
     else if (tab === 'admin') navigate('/admin');
   };
 
-  // Dropbox Logic (Capacitor)
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
       const sub = CapApp.addListener('appUrlOpen', (data) => {
@@ -89,7 +87,6 @@ export default function App() {
     }
   }, [handleUpdateBackupConfig]);
 
-  // Dropbox Logic (Web / GitHub Pages)
   useEffect(() => {
     const token = (window as any)._dbx_temp_token || getDropboxTokenFromUrl();
     if (token) {
@@ -109,8 +106,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans transition-colors duration-500">
-      <main className="max-w-6xl w-full mx-auto p-6 md:p-12 flex-1 flex flex-col gap-8">
-        <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+      <main className="max-w-6xl w-full mx-auto p-4 md:p-12 flex-1 flex flex-col gap-6 md:gap-8">
+        <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 md:gap-8">
           <div className="flex items-center justify-between lg:justify-start gap-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-indigo-600 rounded-[1.2rem] shadow-xl shadow-indigo-600/30">
@@ -129,17 +126,22 @@ export default function App() {
           <div className="hidden lg:block"><TabNav activeTab={activeTab} onChange={handleTabChange} /></div>
           <MobileMenu activeTab={activeTab} onChange={handleTabChange} />
         </header>
-        <div className="glass-panel p-4 md:p-6 flex flex-wrap items-center justify-between gap-6 shadow-xl">
-          <MonthYearPicker month={selectedMonth} year={selectedYear} onMonthChange={(m, y) => { setSelectedMonth(m); setSelectedYear(y); }} />
-          <div className="flex gap-4 w-full md:w-auto">
-            <button onClick={handleExportCSV} className="btn-secondary flex-1 md:flex-none flex items-center justify-center gap-2 text-xs">
-              <Download className="size-4" /> Exportar
+
+        <div className="glass-panel p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 shadow-xl">
+          <div className="w-full md:w-auto flex justify-center">
+            <MonthYearPicker month={selectedMonth} year={selectedYear} onMonthChange={(m, y) => { setSelectedMonth(m); setSelectedYear(y); }} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 w-full md:flex md:w-auto">
+            <button onClick={handleExportCSV} className="btn-secondary h-12 md:h-auto px-2 md:px-8 flex items-center justify-center gap-2 text-[10px]">
+              <Download className="size-4 shrink-0" /> <span>Exportar</span>
             </button>
-            <button onClick={() => setIsFormOpen(!isFormOpen)} className="btn-primary flex-1 md:flex-none flex items-center justify-center gap-2 text-xs">
-              <PlusCircle className="size-4" /> Novo Lançamento
+            <button onClick={() => setIsFormOpen(!isFormOpen)} className="btn-primary h-12 md:h-auto px-2 md:px-8 flex items-center justify-center gap-2 text-[10px]">
+              <PlusCircle className="size-4 shrink-0" /> <span>Lançamento</span>
             </button>
           </div>
         </div>
+
         <div className="flex-1">
           {isFormOpen && (
             <div className="mb-10 animate-in zoom-in-95 duration-500">
@@ -149,7 +151,7 @@ export default function App() {
           <section className="min-h-[400px]"><Outlet /></section>
         </div>
       </main>
-      <footer className="p-10 text-center text-slate-400 dark:text-slate-600 text-[10px] font-bold uppercase tracking-[0.5em]">&copy; 2026 Finance • v1.4.0</footer>
+      <footer className="p-10 text-center text-dim text-[10px] font-black uppercase tracking-[0.5em]">&copy; 2026 Finance • v1.4.0</footer>
       <Toast {...toast} />
     </div>
   );

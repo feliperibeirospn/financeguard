@@ -37,8 +37,11 @@ export const MobileMenu = ({ activeTab, onChange }: MobileMenuProps) => {
         <div className={`absolute top-0 right-0 h-full w-[85%] max-w-sm bg-white dark:bg-slate-900 p-8 shadow-2xl transition-transform duration-500 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           <div className="flex justify-between items-center mb-12">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-600 rounded-xl"><Wallet className="text-white size-6" /></div>
-              <span className="text-xl font-black text-slate-800 dark:text-white">FinanceGuard</span>
+              <div className="p-2 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-600/20"><Wallet className="text-white size-6" /></div>
+              <span className="text-2xl font-black uppercase italic tracking-tighter transition-colors">
+                <span className="text-main">Fin</span>
+                <span className="text-indigo-600 dark:text-indigo-400">ance</span>
+              </span>
             </div>
             <button onClick={() => setIsOpen(false)} className="p-2.5 bg-slate-100 dark:bg-white/5 rounded-2xl text-slate-400"><X className="size-6" /></button>
           </div>

@@ -4,36 +4,40 @@
 
 @layer base {
   :root {
-    /* Light Mode - Ultra Clean */
+    /* Light Mode - Ultra Clean & High Contrast */
     --bg-main: #f8fafc;
     --bg-gradient: radial-gradient(circle at top right, #e2e8f0, #f8fafc 70%);
     --bg-card: #ffffff;
-    --bg-panel: rgba(255, 255, 255, 0.85);
+    --bg-panel: rgba(255, 255, 255, 0.9);
     --border-color: #e2e8f0;
-    --text-main: #0f172a;
-    --text-muted: #64748b;
+
+    --text-primary: #0f172a;    /* Quase preto */
+    --text-secondary: #475569;  /* Cinza escuro */
+    --text-muted: #64748b;     /* Cinza médio */
+
     --accent-color: #4f46e5;
-    --accent-hover: #4338ca;
-    --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
   }
 
   .dark {
-    /* Dark Mode - Professional Deep Navy with High Contrast */
+    /* Dark Mode - Deep Space & High Contrast */
     --bg-main: #020617;
-    --bg-gradient: radial-gradient(circle at top right, #1e1b4b, #020617 80%);
+    --bg-gradient: radial-gradient(circle at top right, #1e1b4b, #020617 85%);
     --bg-card: #0f172a;
-    --bg-panel: rgba(30, 41, 59, 0.7);
+    --bg-panel: rgba(15, 23, 42, 0.8);
     --border-color: #1e293b;
-    --text-main: #ffffff;
-    --text-muted: #94a3b8;
-    --accent-color: #818cf8;
-    --accent-hover: #a5b4fc;
-    --card-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
+
+    --text-primary: #ffffff;    /* Branco puro */
+    --text-secondary: #cbd5e1;  /* Cinza muito claro */
+    --text-muted: #94a3b8;     /* Cinza claro */
+
+    --accent-color: #6366f1;
+    --card-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
   }
 
   html, body, #root {
     height: 100%;
-    @apply transition-all duration-500;
+    @apply transition-colors duration-500;
   }
 
   body {
@@ -41,7 +45,7 @@
     background-color: var(--bg-main);
     background-image: var(--bg-gradient);
     background-attachment: fixed;
-    color: var(--text-main);
+    color: var(--text-primary);
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
@@ -62,29 +66,30 @@
   }
 
   .btn-primary {
-    background-color: #4f46e5;
+    background-color: var(--accent-color);
     @apply text-white px-6 py-3 rounded-2xl font-black uppercase tracking-wider
-           transition-all duration-300 hover:bg-indigo-500 hover:-translate-y-0.5
+           transition-all duration-300 hover:brightness-110 hover:-translate-y-0.5
            active:scale-95 shadow-lg shadow-indigo-500/20;
   }
 
-  .dark .btn-primary {
-    background-color: #6366f1;
-  }
-
   .btn-secondary {
-    @apply bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700
-           text-slate-700 dark:text-white px-6 py-3 rounded-2xl font-black
+    @apply bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700
+           text-slate-700 dark:text-slate-100 px-6 py-3 rounded-2xl font-black
            uppercase tracking-wider transition-all duration-300 border border-slate-200
-           dark:border-white/10 shadow-sm;
+           dark:border-white/5 shadow-sm;
   }
 
   .input-field {
-    @apply w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10
+    @apply w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10
            rounded-2xl px-4 py-4 outline-none focus:ring-2 focus:ring-indigo-500/50
-           transition-all duration-300 text-slate-900 dark:text-white placeholder:text-slate-400;
+           transition-all duration-300 text-slate-900 dark:text-white;
   }
 }
+
+/* Utilitários de Texto com Variáveis */
+.text-main { color: var(--text-primary); }
+.text-sub { color: var(--text-secondary); }
+.text-dim { color: var(--text-muted); }
 
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;

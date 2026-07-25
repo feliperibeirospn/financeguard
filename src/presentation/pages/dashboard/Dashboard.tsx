@@ -51,8 +51,8 @@ export const DashboardPage = () => {
                 <CalendarClock className="size-7" />
               </div>
               <div>
-                <h4 className="font-black text-slate-800 dark:text-white text-lg tracking-tight leading-none mb-1">Pagamentos Pendentes</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tighter">Você possui {pendingRecurring.length} contas fixas para lançar.</p>
+                <h4 className="font-black text-main text-lg tracking-tight leading-none mb-1">Pagamentos Pendentes</h4>
+                <p className="text-xs text-dim font-bold uppercase tracking-tighter">Você possui {pendingRecurring.length} contas fixas para lançar.</p>
               </div>
             </div>
             <button
@@ -76,7 +76,7 @@ export const DashboardPage = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-2 glass-card p-8 rounded-[2.5rem]">
-          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-12 ml-1">Análise Estratégica de Gastos</h3>
+          <h3 className="text-[10px] font-black text-dim uppercase tracking-[0.3em] mb-12 ml-1">Análise Estratégica de Gastos</h3>
           <div className="h-72">
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -101,7 +101,7 @@ export const DashboardPage = () => {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-slate-400 italic text-xs">Aguardando novos lançamentos...</div>
+              <div className="h-full flex items-center justify-center text-dim italic text-xs">Aguardando novos lançamentos...</div>
             )}
           </div>
         </div>
@@ -111,14 +111,14 @@ export const DashboardPage = () => {
             <div className="size-16 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center mb-8 shadow-xl shadow-indigo-500/10 border border-slate-100 dark:border-white/5">
               <PiggyBank className="text-indigo-500 size-8" />
             </div>
-            <h3 className="font-black text-slate-800 dark:text-white text-2xl tracking-tight mb-2">Sua Poupança</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-bold">Taxa atual: <span className="text-indigo-600 dark:text-indigo-400 font-black text-lg ml-1">{summary.savingsRate.toFixed(1)}%</span></p>
+            <h3 className="font-black text-main text-2xl tracking-tight mb-2">Sua Poupança</h3>
+            <p className="text-sm text-dim leading-relaxed font-bold">Taxa atual: <span className="text-indigo-600 dark:text-indigo-400 font-black text-lg ml-1">{summary.savingsRate.toFixed(1)}%</span></p>
           </div>
 
           <div className="mt-12 space-y-5 relative z-10">
             <div className="flex justify-between items-end">
               <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]">Meta: {savingsTargetPct}%</span>
-              <span className="text-3xl font-black text-slate-800 dark:text-white">{progress}%</span>
+              <span className="text-3xl font-black text-main">{progress}%</span>
             </div>
             <div className="h-6 w-full bg-slate-100 dark:bg-slate-950 rounded-full p-1.5 border border-slate-200 dark:border-white/5 shadow-inner">
               <div style={{ width: `${progress}%` }} className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(99,102,241,0.4)]" />

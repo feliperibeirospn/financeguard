@@ -32,7 +32,7 @@ export default function App() {
 
   const { loadConfig, handleUpdateBackupConfig, enableCreditCardStatement } = useConfigStore();
   const { loadCategories, categories } = useCategoryStore();
-  const { loadData, cartoes, handleAddTransaction, handleExportCSV, handleSyncData } = useTransactionStore();
+  const { loadData, cartoes, handleAddTransaction, handleExportCSV } = useTransactionStore();
   const { theme, toggleTheme } = useThemeStore();
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export default function App() {
   if (isInitializing) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center transition-colors">
-        <div className="text-indigo-500 animate-pulse font-black uppercase tracking-widest text-xs">FinanceGuard Pro</div>
+        <div className="text-indigo-500 animate-pulse font-black uppercase tracking-widest text-xs">Finance</div>
       </div>
     );
   }
@@ -105,11 +105,12 @@ export default function App() {
               <div className="p-3 bg-indigo-600 rounded-[1.2rem] shadow-xl shadow-indigo-600/30">
                 <Wallet className="text-white size-7 md:size-8" />
               </div>
-              <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase italic">
-                <span className="text-slate-800 dark:text-white">Finance</span>
-                <span className="text-indigo-600 dark:text-indigo-400">Guard</span>
+              <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic leading-none select-none">
+                <span className="text-main transition-colors">Fin</span>
+                <span className="text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_15px_rgba(99,102,241,0.3)]">ance</span>
               </h1>
             </div>
+
             <button onClick={toggleTheme} className="p-3.5 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-white/10 text-slate-600 dark:text-indigo-400 transition-all hover:scale-110 active:scale-95">
               {theme === 'dark' ? <Sun className="size-5" /> : <Moon className="size-5" />}
             </button>
@@ -137,7 +138,7 @@ export default function App() {
           <section className="min-h-[400px]"><Outlet /></section>
         </div>
       </main>
-      <footer className="p-10 text-center text-slate-400 dark:text-slate-600 text-[10px] font-black uppercase tracking-[0.5em]">&copy; 2026 FinanceGuard Pro</footer>
+      <footer className="p-10 text-center text-slate-400 dark:text-slate-600 text-[10px] font-bold uppercase tracking-[0.5em]">&copy; 2026 Finance • v1.4.0</footer>
       <Toast {...toast} />
     </div>
   );

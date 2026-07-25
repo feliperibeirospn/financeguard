@@ -1,4 +1,4 @@
-# 🛡️ FinanceGuard Pro v1.4.0
+# 🛡️ Finance v1.4.0
 
 > **Soberania Financeira na Palma da sua Mão.**
 > 
@@ -12,7 +12,7 @@
 
 ## 🌟 Diferenciais Estratégicos (v1.4.0)
 
-O **FinanceGuard Pro** redefine o gerenciamento financeiro moderno ao unir **Inteligência Artificial** de ponta com a segurança inabalável do **Offline-First**.
+O **Finance** redefine o gerenciamento financeiro moderno ao unir **Inteligência Artificial** de ponta com a segurança inabalável do **Offline-First**.
 
 - 🔒 **Segurança Bancária**: Criptografia AES-256 local para backups em nuvem. Nem o Dropbox, nem nós temos acesso aos seus dados.
 - 🤖 **IA Agnóstica**: Escolha seu cérebro. Suporte nativo para **Groq (Llama 3.3)**, **Google Gemini** e **DeepSeek**.

@@ -16,7 +16,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
  */
 const config: CapacitorConfig = {
   appId: 'com.felipecleones.financeguard',
-  appName: 'FinanceGuard Pro',
+  appName: 'Finance',
   webDir: 'dist',
   android: {
     // Permite que arquivos `file://` carreguem recursos remotos só

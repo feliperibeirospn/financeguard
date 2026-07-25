@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, Plus, Trash2, Lock, LogIn, CreditCard } from 'lucide-react';
+import { Settings, Plus, Trash2, Lock, LogIn, CreditCard, Sparkles, BrainCircuit } from 'lucide-react';
 import { startDropboxAuth } from '../../../infrastructure/utils/dropboxOAuth';
 import type { Category } from '../../../domain/categories/entities/categories';
 import { useConfigStore } from '../../../application/state/useConfigStore';
@@ -10,8 +10,9 @@ import { useUIStore } from '../../../application/state/useUIStore';
 export const AdminPage = () => {
   const {
     savingsTargetPct, backupConfig, enableCreditCardStatement,
+    aiConfig, aiManageCategories,
     handleUpdateSavingsTarget, handleUpdateBackupConfig,
-    handleUpdateCreditCardConfig
+    handleUpdateCreditCardConfig, handleUpdateAIConfig, handleUpdateAIManageCategories
   } = useConfigStore();
 
   const { categories, handleAddCategory, handleUpdateCategories, handleDeleteCategory } = useCategoryStore();
@@ -74,6 +75,65 @@ export const AdminPage = () => {
               <input type="password" value={backupConfig?.backupPassword || ''} onChange={(e) => handleUpdateBackupConfig(undefined, e.target.value)} placeholder="Senha mestre..." className="input-field pl-11" />
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-dim" />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Inteligência Artificial */}
+      <section className="glass-card p-8 rounded-[2.5rem] space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-black text-main text-lg tracking-tight">Inteligência Artificial</h3>
+            <p className="text-xs text-dim mt-1">Configure o "cérebro" do seu assistente financeiro.</p>
+          </div>
+          <div className="p-3 bg-indigo-500/10 text-indigo-500 rounded-2xl">
+            <BrainCircuit className="size-6" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] font-black text-dim uppercase tracking-widest ml-1 mb-2 block">Provedor</label>
+                <select
+                  value={aiConfig?.provider || 'gemini'}
+                  onChange={(e) => handleUpdateAIConfig(e.target.value as any, aiConfig?.apiKey || '')}
+                  className="input-field appearance-none cursor-pointer"
+                >
+                  <option value="gemini">Google Gemini</option>
+                  <option value="groq">Groq (Llama 3)</option>
+                  <option value="deepseek">DeepSeek</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-dim uppercase tracking-widest ml-1 mb-2 block">Categorização IA</label>
+                <button
+                  onClick={() => handleUpdateAIManageCategories(!aiManageCategories)}
+                  className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase transition-all ${aiManageCategories ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' : 'bg-slate-100 dark:bg-slate-800 text-dim border border-transparent'}`}
+                >
+                  {aiManageCategories ? 'Ativada' : 'Manual'}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-dim uppercase tracking-widest ml-1 mb-2 block">Chave de API (API Key)</label>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={aiConfig?.apiKey || ''}
+                  onChange={(e) => handleUpdateAIConfig(aiConfig?.provider || 'gemini', e.target.value)}
+                  placeholder="Cole sua chave aqui..."
+                  className="input-field pl-11"
+                />
+                <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-indigo-400" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 flex flex-col justify-center">
+             <p className="text-[11px] text-dim leading-relaxed italic">
+               "A IA processa seus comandos de voz e texto localmente antes de enviar apenas os dados necessários para extração. Suas chaves são salvas apenas neste dispositivo."
+             </p>
           </div>
         </div>
       </section>

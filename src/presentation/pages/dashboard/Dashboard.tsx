@@ -23,7 +23,8 @@ import { generateInsights } from '../../../application/services/AIService';
 export const DashboardPage = () => {
   const { summary, chartData } = useFinanceSummary();
   const { isAIAnalyzing, selectedMonth, selectedYear, isOnline } = useUIStore();
-  const { savingsTargetPct, aiInsights } = useConfigStore();
+  const { savingsTargetPct, lastAIAnalysis } = useConfigStore();
+  const aiInsights = lastAIAnalysis?.insights || [];
   const { recorrencias, transactions, handleApplyRecurring } = useTransactionStore();
   const { theme } = useThemeStore();
 

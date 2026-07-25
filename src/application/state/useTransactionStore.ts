@@ -2,146 +2,122 @@ import { create } from 'zustand';
 import { db } from '../../infrastructure/db/AppDatabase';
 import type { Transacao } from '../../domain/transactions/entities/Transacao';
 import type { Parcelamento } from '../../domain/transactions/entities/Parcelamento';
-import type { Recorrencia, CartaoCredito } from '../../infrastructure/datasources/storage/sqliteStorage';
-import { exportTransactionsToCSV } from '../../infrastructure/datasources/storage';
-import { generateUUID } from '../../domain/shared/generateUUID';
-import { generateInstallments } from '../../domain/transactions';
+import { useConfigStore } from './useConfigStore';
+import { backupData, restoreData } from '../services/BackupService';
 
 interface TransactionState {
   transactions: Transacao[];
   parcelamentos: Parcelamento[];
-  recorrencias: Recorrencia[];
-  cartoes: CartaoCredito[];
+  cartoes: any[];
+  recorrencias: any[];
   isLoading: boolean;
-
   loadData: () => Promise<void>;
   handleAddTransaction: (input: any, isOnline: boolean) => Promise<void>;
   handleDeleteTransaction: (id: string) => Promise<void>;
-  handleSyncData: () => Promise<void>;
   handleExportCSV: () => void;
-
-  addRecurring: (rec: Omit<Recorrencia, 'id'>) => Promise<void>;
-  deleteRecurring: (id: string) => Promise<void>;
-  handleApplyRecurring: (selectedMonth: number, selectedYear: number, isOnline: boolean) => Promise<void>;
-
-  addCard: (card: Omit<CartaoCredito, 'id'>) => Promise<void>;
+  handleSyncData: () => Promise<void>;
+  handleApplyRecurring: (month: number, year: number, isOnline: boolean) => Promise<void>;
+  addCard: (card: any) => Promise<void>;
   deleteCard: (id: string) => Promise<void>;
-
   resetData: () => Promise<void>;
 }
 
 export const useTransactionStore = create<TransactionState>((set, get) => ({
   transactions: [],
   parcelamentos: [],
-  recorrencias: [],
   cartoes: [],
+  recorrencias: [],
   isLoading: true,
 
   loadData: async () => {
-    const [transactions, parcelamentos, recorrencias, cartoes] = await Promise.all([
-      db.transacoes.reverse().toArray(),
+    const [txs, par, cards, rec] = await Promise.all([
+      db.transacoes.toArray(),
       db.parcelamentos.toArray(),
-      db.recorrencias.toArray(),
       db.cartoes.toArray(),
+      db.recorrencias.toArray()
     ]);
-    set({ transactions, parcelamentos, recorrencias, cartoes, isLoading: false });
+    set({ transactions: txs, parcelamentos: par, cartoes: cards, recorrencias: rec, isLoading: false });
+
+    const { backupConfig, loadConfig } = useConfigStore.getState();
+    if (backupConfig?.dropboxToken && backupConfig?.backupPassword) {
+      try {
+        await restoreData(backupConfig.dropboxToken, backupConfig.backupPassword);
+        // Recarrega TUDO após restore (inclusive configurações de IA)
+        await loadConfig();
+        const [ntxs, npar, ncards, nrec] = await Promise.all([
+          db.transacoes.toArray(),
+          db.parcelamentos.toArray(),
+          db.cartoes.toArray(),
+          db.recorrencias.toArray()
+        ]);
+        set({ transactions: ntxs, parcelamentos: npar, cartoes: ncards, recorrencias: nrec });
+      } catch (e) {
+        console.warn('Auto-restore silencioso falhou ou não há dados novos.');
+      }
+    }
+  },
+
+  handleSyncData: async () => {
+    const { backupConfig } = useConfigStore.getState();
+    if (!backupConfig?.dropboxToken || !backupConfig?.backupPassword) return;
+    try {
+      await backupData(backupConfig.dropboxToken, backupConfig.backupPassword);
+    } catch (e: any) {
+      console.error("Erro na sincronização automática:", e);
+    }
   },
 
   handleAddTransaction: async (input, isOnline) => {
-    const { description, amount, category, paymentMethod, installments, date, cartaoId } = input;
-    const finalAmount = amount;
-    const newTxId = `t_${Date.now()}`;
-    const syncStatus = isOnline ? 'SINCRONIZADO' : 'PENDENTE';
-
-    if (paymentMethod === 'cartao' && installments > 1) {
-      const { parcelamento, parcelas } = generateInstallments({
-        descricao: description,
-        valorTotal: finalAmount,
-        qtdParcelas: installments,
-        categoriaId: category,
-        dataInicio: date,
-        statusSincronismo: syncStatus,
-        timestamp: Date.now(),
-        idPrefix: newTxId
-      });
-      const parcelasComCartao = parcelas.map(p => ({ ...p, cartao_id: cartaoId }));
-      await db.transaction('rw', [db.parcelamentos, db.transacoes], async () => {
-        await db.parcelamentos.add(parcelamento);
-        await db.transacoes.bulkAdd(parcelasComCartao);
-      });
-      set(state => ({
-        parcelamentos: [...state.parcelamentos, parcelamento],
-        transactions: [...parcelasComCartao, ...state.transactions]
-      }));
-    } else {
-      const tx: Transacao = {
-        id: newTxId,
-        id_remoto: generateUUID(),
-        descricao: description,
-        valor: finalAmount,
-        categoria_id: category,
-        data: date,
-        forma_pagamento: paymentMethod,
-        parcelamento_id: null,
-        atualizado_em: Date.now(),
-        status_sincronismo: syncStatus,
-        cartao_id: cartaoId
-      };
-      await db.transacoes.add(tx);
-      set(state => ({ transactions: [tx, ...state.transactions] }));
-    }
+    const id = Date.now().toString();
+    const newTx: Transacao = {
+      id,
+      ...input,
+      id_remoto: id,
+      parcelamento_id: null,
+      atualizado_em: Date.now(),
+      status_sincronismo: 'PENDENTE'
+    };
+    await db.transacoes.add(newTx);
+    set((state) => ({ transactions: [newTx, ...state.transactions] }));
+    if (isOnline) get().handleSyncData();
   },
 
   handleDeleteTransaction: async (id) => {
     await db.transacoes.delete(id);
-    set(state => ({ transactions: state.transactions.filter(t => t.id !== id) }));
+    set((state) => ({ transactions: state.transactions.filter(t => t.id !== id) }));
+    get().handleSyncData();
   },
 
-  handleSyncData: async () => {
-    await db.transacoes.where('status_sincronismo').equals('PENDENTE').modify({ status_sincronismo: 'SINCRONIZADO' });
-    const transactions = await db.transacoes.reverse().toArray();
-    set({ transactions });
+  handleApplyRecurring: async (month, year, isOnline) => {
+    const { recorrencias } = get();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+
+    for (const rec of recorrencias) {
+      const id = `${rec.id}_${month}_${year}`;
+      const exists = await db.transacoes.get(id);
+      if (!exists) {
+        await db.transacoes.add({
+          id,
+          id_remoto: id,
+          descricao: rec.descricao,
+          valor: rec.valor,
+          categoria_id: rec.categoria_id,
+          forma_pagamento: 'dinheiro',
+          data: dateStr,
+          parcelamento_id: null,
+          atualizado_em: Date.now(),
+          status_sincronismo: 'PENDENTE'
+        });
+      }
+    }
+    const txs = await db.transacoes.toArray();
+    set({ transactions: txs });
+    if (isOnline) get().handleSyncData();
   },
 
-  handleExportCSV: () => {
-    exportTransactionsToCSV(get().transactions);
-  },
-
-  addRecurring: async (input) => {
-    const newRec = { ...input, id: `rec_${Date.now()}` } as Recorrencia;
-    await db.recorrencias.add(newRec);
-    set(state => ({ recorrencias: [...state.recorrencias, newRec] }));
-  },
-
-  deleteRecurring: async (id) => {
-    await db.recorrencias.delete(id);
-    set(state => ({ recorrencias: state.recorrencias.filter(r => r.id !== id) }));
-  },
-
-  handleApplyRecurring: async (selectedMonth, selectedYear, isOnline) => {
-    const { recorrencias, transactions } = get();
-    const existingDescriptions = new Set(transactions.map(t => t.descricao.toLowerCase()));
-    const pending = recorrencias.filter(r => !existingDescriptions.has(r.descricao.toLowerCase()));
-
-    const newTxs: Transacao[] = pending.map(r => ({
-      id: `t_rec_${r.id}_${Date.now()}`,
-      id_remoto: generateUUID(),
-      descricao: r.descricao,
-      valor: r.valor,
-      categoria_id: r.categoria_id,
-      data: new Date(selectedYear, selectedMonth, r.dia).toISOString().split('T')[0],
-      forma_pagamento: r.forma_pagamento as any,
-      parcelamento_id: null,
-      atualizado_em: Date.now(),
-      status_sincronismo: isOnline ? 'SINCRONIZADO' : 'PENDENTE',
-    }));
-
-    await db.transacoes.bulkAdd(newTxs);
-    set(state => ({ transactions: [...newTxs, ...state.transactions] }));
-  },
-
-  addCard: async (input) => {
-    const newCard = { ...input, id: `card_${Date.now()}` } as CartaoCredito;
+  addCard: async (card) => {
+    const id = Date.now().toString();
+    const newCard = { ...card, id };
     await db.cartoes.add(newCard);
     set(state => ({ cartoes: [...state.cartoes, newCard] }));
   },
@@ -152,7 +128,25 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
   },
 
   resetData: async () => {
-    await Promise.all([db.transacoes.clear(), db.parcelamentos.clear(), db.recorrencias.clear(), db.cartoes.clear()]);
-    set({ transactions: [], parcelamentos: [], recorrencias: [], cartoes: [] });
+    await Promise.all([
+      db.transacoes.clear(),
+      db.parcelamentos.clear(),
+      db.cartoes.clear(),
+      db.recorrencias.clear()
+    ]);
+    set({ transactions: [], parcelamentos: [], cartoes: [], recorrencias: [] });
+  },
+
+  handleExportCSV: () => {
+    const { transactions } = get();
+    const headers = ['Data', 'Descricao', 'Valor', 'Categoria', 'Metodo'];
+    const rows = transactions.map(t => [t.data, t.descricao, t.valor, t.categoria_id, t.forma_pagamento]);
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `extrato_${new Date().toISOString().split('T')[0]}.csv`);
+    link.click();
   }
 }));

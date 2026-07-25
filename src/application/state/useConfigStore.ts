@@ -3,7 +3,6 @@ import { db, type AppConfig } from '../../infrastructure/db/AppDatabase';
 
 interface ConfigState extends Omit<AppConfig, 'id'> {
   isLoading: boolean;
-  aiInsights: string[];
   loadConfig: () => Promise<void>;
   updateConfig: (updates: Partial<Omit<AppConfig, 'id'>>) => Promise<void>;
   handleUpdateBackupConfig: (token?: string, password?: string, appKey?: string) => Promise<void>;
@@ -18,7 +17,6 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   enableCreditCardStatement: false,
   aiManageCategories: false,
   isLoading: true,
-  aiInsights: [],
 
   loadConfig: async () => {
     let config = await db.appConfig.get('global');
@@ -45,11 +43,30 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
   handleUpdateBackupConfig: async (token, password, appKey) => {
     const { backupConfig } = get();
+    let email = backupConfig?.dropboxUserEmail;
+
+    // Se um novo token foi fornecido, buscar o e-mail do usuário no Dropbox para deixar o "lastro"
+    if (token) {
+      try {
+        const response = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const userData = await response.json();
+          email = userData.email;
+        }
+      } catch (e) {
+        console.error('Erro ao buscar e-mail do Dropbox:', e);
+      }
+    }
+
     const newBackupConfig = {
       ...(backupConfig || {}),
       ...(token !== undefined ? { dropboxToken: token } : {}),
       ...(password !== undefined ? { backupPassword: password } : {}),
       ...(appKey !== undefined ? { dropboxAppKey: appKey } : {}),
+      ...(email !== undefined ? { dropboxUserEmail: email } : {}),
     };
     await get().updateConfig({ backupConfig: newBackupConfig });
   },

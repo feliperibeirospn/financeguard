@@ -32,8 +32,19 @@ export default function App() {
 
   const { loadConfig, handleUpdateBackupConfig, enableCreditCardStatement } = useConfigStore();
   const { loadCategories, categories } = useCategoryStore();
-  const { loadData, cartoes, handleAddTransaction, handleExportCSV } = useTransactionStore();
+  const { loadData, cartoes, handleAddTransaction, handleExportCSV, handleSyncData } = useTransactionStore();
   const { theme, toggleTheme } = useThemeStore();
+
+  // Auto-Sync ao Fechar ou Esconder o app (Mobile/PWA)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleSyncData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [handleSyncData]);
 
   useEffect(() => {
     const init = async () => {

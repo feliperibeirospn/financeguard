@@ -167,12 +167,12 @@ export const AdminPage = () => {
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {cartoes.map(card => (
-                <div key={card.id} className="p-6 bg-slate-50 dark:bg-white/5 rounded-[2rem] border border-slate-100 dark:border-white/5 flex items-center justify-between group hover:border-indigo-500/30 transition-all">
+                <div key={card.id} className="p-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-white/5 flex items-center justify-between group hover:border-indigo-500/30 transition-all shadow-sm">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm text-indigo-500 border border-slate-100 dark:border-white/5"><CreditCard className="size-5" /></div>
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl shadow-sm text-indigo-500 border border-slate-100 dark:border-white/5"><CreditCard className="size-5" /></div>
                     <div>
-                      <h4 className="font-black text-main text-sm">{card.nome}</h4>
-                      <p className="text-[10px] text-dim font-bold uppercase">Fecha todo dia {card.diaFechamento}</p>
+                      <h4 className="font-black text-main text-sm uppercase tracking-tight">{card.nome}</h4>
+                      <p className="text-[10px] text-dim font-bold uppercase tracking-widest">Fecha todo dia {card.diaFechamento}</p>
                     </div>
                   </div>
                   <button onClick={() => deleteCard(card.id)} className="text-dim hover:text-rose-500 p-2 transition-all"><Trash2 className="size-4" /></button>
@@ -202,8 +202,8 @@ export const AdminPage = () => {
           </div>
           <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
             {categories.map((cat) => (
-              <div key={cat.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-indigo-500/20 transition-all">
-                <div className="flex items-center gap-3"><span className="text-xl">{cat.icon}</span><div><p className="text-sm font-black text-main">{cat.name}</p><p className="text-[10px] text-dim font-bold uppercase">{cat.type}</p></div></div>
+              <div key={cat.id} className="flex items-center justify-between p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-indigo-500/20 transition-all shadow-sm">
+                <div className="flex items-center gap-4"><span className="text-2xl">{cat.icon}</span><div><p className="text-sm font-black text-main uppercase tracking-tight">{cat.name}</p><p className="text-[10px] text-dim font-bold uppercase tracking-widest">{cat.type}</p></div></div>
                 <div className="flex gap-1"><button onClick={() => setEditingCategory(cat)} className="p-2 text-dim hover:text-indigo-500 transition-all"><Settings className="size-4" /></button><button onClick={() => confirm('Excluir?') && handleDeleteCategory(cat.id)} className="p-2 text-dim hover:text-rose-500 transition-all"><Trash2 className="size-4" /></button></div>
               </div>
             ))}

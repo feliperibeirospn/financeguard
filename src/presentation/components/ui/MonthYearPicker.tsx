@@ -22,22 +22,20 @@ export const MonthYearPicker = ({ month, year, onMonthChange }: MonthYearPickerP
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       <button
         onClick={() => step(-1)}
-        className="p-2 hover:bg-slate-800 rounded-xl transition-colors text-slate-400 hover:text-white"
-        aria-label="Mês anterior"
+        className="p-3 bg-white dark:bg-slate-800 rounded-2xl transition-all hover:bg-indigo-500 hover:text-white text-slate-400 border border-slate-100 dark:border-white/5 shadow-sm active:scale-95"
       >
         <ChevronLeft className="size-5" />
       </button>
-      <div className="flex gap-1.5 text-sm md:text-base font-black px-2">
-        <span className="text-white">{MONTHS[month]}</span>
-        <span className="text-indigo-400">{year}</span>
+      <div className="flex gap-2 text-sm md:text-lg font-black px-4">
+        <span className="text-slate-800 dark:text-white uppercase tracking-tighter">{MONTHS[month]}</span>
+        <span className="text-indigo-600 dark:text-indigo-400">{year}</span>
       </div>
       <button
         onClick={() => step(1)}
-        className="p-2 hover:bg-slate-800 rounded-xl transition-colors text-slate-400 hover:text-white"
-        aria-label="Próximo mês"
+        className="p-3 bg-white dark:bg-slate-800 rounded-2xl transition-all hover:bg-indigo-500 hover:text-white text-slate-400 border border-slate-100 dark:border-white/5 shadow-sm active:scale-95"
       >
         <ChevronRight className="size-5" />
       </button>

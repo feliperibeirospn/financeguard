@@ -4,21 +4,44 @@
 
 @layer base {
   :root {
-    color-scheme: dark;
+    /* Light Mode - Ultra Clean */
+    --bg-main: #f8fafc;
+    --bg-gradient: radial-gradient(circle at top right, #e2e8f0, #f8fafc 70%);
+    --bg-card: #ffffff;
+    --bg-panel: rgba(255, 255, 255, 0.85);
+    --border-color: #e2e8f0;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --accent-color: #4f46e5;
+    --accent-hover: #4338ca;
+    --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
 
-  html,
-  body,
-  #root {
+  .dark {
+    /* Dark Mode - Professional Deep Navy with High Contrast */
+    --bg-main: #020617;
+    --bg-gradient: radial-gradient(circle at top right, #1e1b4b, #020617 80%);
+    --bg-card: #0f172a;
+    --bg-panel: rgba(30, 41, 59, 0.7);
+    --border-color: #1e293b;
+    --text-main: #ffffff;
+    --text-muted: #94a3b8;
+    --accent-color: #818cf8;
+    --accent-hover: #a5b4fc;
+    --card-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
+  }
+
+  html, body, #root {
     height: 100%;
-    @apply selection:bg-indigo-500 selection:text-white;
+    @apply transition-all duration-500;
   }
 
   body {
     margin: 0;
-    background: radial-gradient(circle at top right, #1e1b4b, #0f172a 40%);
-    background-color: #0f172a;
-    color: #f1f5f9;
+    background-color: var(--bg-main);
+    background-image: var(--bg-gradient);
+    background-attachment: fixed;
+    color: var(--text-main);
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
@@ -26,37 +49,49 @@
 
 @layer components {
   .glass-card {
-    @apply bg-slate-900/60 backdrop-blur-md border border-white/5 shadow-2xl;
+    @apply border transition-all duration-500 rounded-[2.5rem];
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+    box-shadow: var(--card-shadow);
   }
 
   .glass-panel {
-    @apply bg-slate-950/40 backdrop-blur-xl border border-white/5;
-  }
-
-  .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400;
+    @apply backdrop-blur-2xl border transition-all duration-500 rounded-[2.5rem];
+    background-color: var(--bg-panel);
+    border-color: var(--border-color);
   }
 
   .btn-primary {
-    @apply bg-indigo-600 hover:bg-indigo-500 text-white transition-all duration-300
-           shadow-lg shadow-indigo-900/20 hover:shadow-indigo-500/30 hover:-translate-y-0.5;
+    background-color: #4f46e5;
+    @apply text-white px-6 py-3 rounded-2xl font-black uppercase tracking-wider
+           transition-all duration-300 hover:bg-indigo-500 hover:-translate-y-0.5
+           active:scale-95 shadow-lg shadow-indigo-500/20;
+  }
+
+  .dark .btn-primary {
+    background-color: #6366f1;
   }
 
   .btn-secondary {
-    @apply bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition-all duration-300;
+    @apply bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700
+           text-slate-700 dark:text-white px-6 py-3 rounded-2xl font-black
+           uppercase tracking-wider transition-all duration-300 border border-slate-200
+           dark:border-white/10 shadow-sm;
+  }
+
+  .input-field {
+    @apply w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10
+           rounded-2xl px-4 py-4 outline-none focus:ring-2 focus:ring-indigo-500/50
+           transition-all duration-300 text-slate-900 dark:text-white placeholder:text-slate-400;
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
 }
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
 }
-::-webkit-scrollbar-thumb {
-  @apply bg-slate-800 rounded-full border-4 border-slate-950;
-}
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-700;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full;
 }

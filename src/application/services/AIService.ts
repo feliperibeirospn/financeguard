@@ -54,7 +54,7 @@ export const processAICommand = async (text: string) => {
   return callAI(systemPrompt, text);
 };
 
-export const generateInsights = async (force = false) => {
+export const generateInsights = async (summary: any, force = false) => {
   const { savingsTargetPct, lastAIAnalysis, updateConfig } = useConfigStore.getState();
   const { setIsAIAnalyzing } = useUIStore.getState();
 
@@ -63,10 +63,8 @@ export const generateInsights = async (force = false) => {
 
   setIsAIAnalyzing(true);
   try {
-    // Note: In a real refactor, we would pass summary data here.
-    // For now, this is a placeholder.
-    const systemPrompt = `Você é um consultor financeiro. Analise e dê 3 insights curtos. JSON: { insights: ["dica1", "dica2", "dica3"] }`;
-    const userPrompt = `Meta de poupança: ${savingsTargetPct}%`;
+    const systemPrompt = `Você é um consultor financeiro. Analise e dê 3 insights curtos (máx 12 palavras). JSON: { insights: ["dica1", "dica2", "dica3"] }`;
+    const userPrompt = `Receita R$ ${summary.income}, Gastos R$ ${summary.expenses}, Meta ${savingsTargetPct}% de poupança.`;
     const data = await callAI(systemPrompt, userPrompt);
     await updateConfig({ lastAIAnalysis: { date: today, insights: data.insights } });
   } catch (err) {

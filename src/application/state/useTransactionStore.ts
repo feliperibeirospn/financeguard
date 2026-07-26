@@ -3,6 +3,7 @@ import { db } from '../../infrastructure/db/AppDatabase';
 import type { Transacao } from '../../domain/transactions/entities/Transacao';
 import type { Parcelamento } from '../../domain/transactions/entities/Parcelamento';
 import { useConfigStore } from './useConfigStore';
+import { useCategoryStore } from './useCategoryStore';
 import { backupData, restoreData } from '../services/BackupService';
 
 interface TransactionState {
@@ -42,7 +43,6 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     if (backupConfig?.dropboxToken && backupConfig?.backupPassword) {
       try {
         await restoreData(backupConfig.dropboxToken, backupConfig.backupPassword);
-        // Recarrega TUDO após restore (inclusive configurações de IA)
         await loadConfig();
         const [ntxs, npar, ncards, nrec] = await Promise.all([
           db.transacoes.toArray(),
@@ -68,15 +68,36 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
   },
 
   handleAddTransaction: async (input, isOnline) => {
+    const { handleAddCategory, categories } = useCategoryStore.getState();
+
+    // 1. Se houver nova categoria sugerida pela IA, salvar primeiro
+    if (input.newCategory) {
+      await handleAddCategory(input.newCategory);
+    }
+
     const id = Date.now().toString();
+
+    // 2. Ajustar sinal do valor (despesa = negativo)
+    const cat = categories.find(c => c.id === input.category) || input.newCategory;
+    let finalAmount = input.amount;
+    if (cat && (cat.type === 'expense' || cat.type === 'investment') && finalAmount > 0) {
+      finalAmount = -finalAmount;
+    }
+
     const newTx: Transacao = {
       id,
-      ...input,
       id_remoto: id,
+      descricao: input.description || input.descricao || 'Sem descrição',
+      valor: finalAmount,
+      categoria_id: input.category,
+      forma_pagamento: input.paymentMethod,
+      data: input.date,
+      cartao_id: input.cartaoId || null,
       parcelamento_id: null,
       atualizado_em: Date.now(),
       status_sincronismo: 'PENDENTE'
     };
+
     await db.transacoes.add(newTx);
     set((state) => ({ transactions: [newTx, ...state.transactions] }));
     if (isOnline) get().handleSyncData();

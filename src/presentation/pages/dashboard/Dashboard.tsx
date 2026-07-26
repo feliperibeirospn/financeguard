@@ -30,8 +30,14 @@ export const DashboardPage = () => {
   const progress = Math.min(Math.round((savingsPct / savingsTargetPct) * 100), 100);
 
   const pendingRecurring = useMemo(() => {
-    const existingDescriptions = new Set(transactions.map(t => t.descricao.toLowerCase()));
-    return recorrencias.filter(r => !existingDescriptions.has(r.descricao.toLowerCase()));
+    const existingDescriptions = new Set(
+      transactions
+        .filter(t => t && t.descricao)
+        .map(t => t.descricao.toLowerCase())
+    );
+    return recorrencias.filter(r =>
+      r && r.descricao && !existingDescriptions.has(r.descricao.toLowerCase())
+    );
   }, [recorrencias, transactions]);
 
   const onRefreshInsights = () => {

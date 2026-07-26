@@ -32,12 +32,14 @@ export const NewTransactionForm = ({
   enableCreditCardStatement = false,
   onProcessAICommand
 }: NewTransactionFormProps) => {
+  const getToday = () => new Date().toISOString().split('T')[0];
+
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState(categories[0]?.id || '');
   const [paymentMethod, setPaymentMethod] = useState('dinheiro');
   const [installments, setInstallments] = useState(1);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getToday());
   const [cartaoId, setCartaoId] = useState(cartoes[0]?.id || '');
 
   const [aiText, setAiText] = useState('');
@@ -87,7 +89,7 @@ export const NewTransactionForm = ({
     try {
       const data = await onProcessAICommand(aiText);
       if (data) {
-        setDescription(data.descricao || description);
+        setDescription(data.descricao || data.description || description);
         setAmount(String(data.amount) || amount);
         setPaymentMethod(data.paymentMethod || paymentMethod);
         setInstallments(data.installments || installments);
@@ -109,7 +111,7 @@ export const NewTransactionForm = ({
     e.preventDefault();
     if (!description || !amount) return;
     onSubmit({ description, amount: parseFloat(amount), category, paymentMethod, installments, date, cartaoId: (paymentMethod === 'cartao' && enableCreditCardStatement) ? cartaoId : undefined, newCategory: suggestedCategory || undefined });
-    setDescription(''); setAmount(''); setInstallments(1); setSuggestedCategory(null);
+    setDescription(''); setAmount(''); setInstallments(1); setSuggestedCategory(null); setDate(getToday());
   };
 
   return (

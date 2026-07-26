@@ -47,11 +47,40 @@ export const processAICommand = async (text: string) => {
   const { categories } = useCategoryStore.getState();
   const { aiManageCategories } = useConfigStore.getState();
 
-  const categoriesPrompt = categories.map(c => `ID: ${c.id}, Nome: ${c.name}, Tipo: ${c.type}`).join('\n');
+  // Data de referência para a IA saber o que é "hoje"
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const dayOfWeek = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(now);
 
-  const systemPrompt = `Extraia dados em JSON: {descricao, amount, category, paymentMethod, installments, date, suggestedCategory?}. Categorias Atuais:\n${categoriesPrompt}\n${aiManageCategories ? 'Se o gasto NÃO se encaixar, sugira em suggestedCategory: { name, icon, color, type }. O ícone DEVE ser um Emoji. category="NEW".' : 'Use apenas as existentes.'}`;
+  const categoriesPrompt = categories.map(c => `- ID: "${c.id}", Nome: "${c.name}", Tipo: "${c.type}"`).join('\n');
 
-  return callAI(systemPrompt, text);
+  const systemPrompt = `Você é um Analista Financeiro especializado em extrair dados de transações.
+Seu objetivo é processar uma entrada de texto/voz em português e retornar um JSON puro.
+
+DATA DE REFERÊNCIA (HOJE): ${todayStr} (${dayOfWeek}).
+
+REGRAS DE EXTRAÇÃO:
+1. "descricao": Nome limpo do gasto (ex: "Gás de Cozinha", "Ifood", "Salário").
+2. "amount": Valor absoluto da transação como número (float).
+3. "category": Deve ser o ID de uma das categorias abaixo. ANALISE o contexto do gasto para escolher a melhor.
+4. "paymentMethod": "dinheiro" (para dinheiro, pix, débito) ou "cartao" (para crédito).
+5. "installments": Número de parcelas (padrão 1).
+6. "date": Data da transação em YYYY-MM-DD. OBRIGATÓRIO: Se o usuário não mencionar uma data específica, use SEMPRE "${todayStr}".
+
+CATEGORIAS ATUAIS:
+${categoriesPrompt}
+
+LÓGICA DE CATEGORIZAÇÃO:
+- Supermercado, Aluguel, Gás, Energia, Internet -> Essencial (ID: cat_essencial)
+- Restaurantes, Cinema, Streaming, Viagens -> Estilo de Vida (ID: cat_lazer)
+- Compra de Ações, Cripto, Poupança -> Investimento (ID: cat_investimento)
+- Salário, Dividendos, Vendas -> Receita (ID: cat_receita)
+
+${aiManageCategories ? 'Se o gasto NÃO se encaixar em NENHUMA das categorias acima, retorne "category": "NEW" e sugira uma nova em "suggestedCategory": { "name": string, "icon": string (Emoji), "type": "expense" | "income" }.' : 'Obrigatório usar apenas os IDs das categorias listadas.'}
+
+RETORNE APENAS O JSON.`;
+
+  return callAI(systemPrompt, `Texto do Usuário: "${text}"`);
 };
 
 export const generateInsights = async (summary: any, force = false) => {
@@ -63,8 +92,8 @@ export const generateInsights = async (summary: any, force = false) => {
 
   setIsAIAnalyzing(true);
   try {
-    const systemPrompt = `Você é um consultor financeiro. Analise e dê 3 insights curtos (máx 12 palavras). JSON: { insights: ["dica1", "dica2", "dica3"] }`;
-    const userPrompt = `Receita R$ ${summary.income}, Gastos R$ ${summary.expenses}, Meta ${savingsTargetPct}% de poupança.`;
+    const systemPrompt = `Você é um estrategista financeiro pessoal. Analise os números abaixo e dê 3 insights práticos e diretos (máx 12 palavras cada). Retorne JSON: { "insights": ["...", "...", "..."] }`;
+    const userPrompt = `Receita R$ ${summary.income}, Gastos R$ ${summary.expenses}, Meta ${savingsTargetPct}% de poupança mensal.`;
     const data = await callAI(systemPrompt, userPrompt);
     await updateConfig({ lastAIAnalysis: { date: today, insights: data.insights } });
   } catch (err) {

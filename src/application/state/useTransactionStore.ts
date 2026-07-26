@@ -20,6 +20,8 @@ interface TransactionState {
   handleApplyRecurring: (month: number, year: number, isOnline: boolean) => Promise<void>;
   addCard: (card: any) => Promise<void>;
   deleteCard: (id: string) => Promise<void>;
+  addRecurring: (rec: any) => Promise<void>;
+  deleteRecurring: (id: string) => Promise<void>;
   resetData: () => Promise<void>;
 }
 
@@ -70,14 +72,11 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
   handleAddTransaction: async (input, isOnline) => {
     const { handleAddCategory, categories } = useCategoryStore.getState();
 
-    // 1. Se houver nova categoria sugerida pela IA, salvar primeiro
     if (input.newCategory) {
       await handleAddCategory(input.newCategory);
     }
 
     const id = Date.now().toString();
-
-    // 2. Ajustar sinal do valor (despesa = negativo)
     const cat = categories.find(c => c.id === input.category) || input.newCategory;
     let finalAmount = input.amount;
     if (cat && (cat.type === 'expense' || cat.type === 'investment') && finalAmount > 0) {
@@ -123,7 +122,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
           descricao: rec.descricao,
           valor: rec.valor,
           categoria_id: rec.categoria_id,
-          forma_pagamento: 'dinheiro',
+          forma_pagamento: rec.forma_pagamento || 'dinheiro',
           data: dateStr,
           parcelamento_id: null,
           atualizado_em: Date.now(),
@@ -141,11 +140,27 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     const newCard = { ...card, id };
     await db.cartoes.add(newCard);
     set(state => ({ cartoes: [...state.cartoes, newCard] }));
+    get().handleSyncData();
   },
 
   deleteCard: async (id) => {
     await db.cartoes.delete(id);
     set(state => ({ cartoes: state.cartoes.filter(c => c.id !== id) }));
+    get().handleSyncData();
+  },
+
+  addRecurring: async (rec) => {
+    const id = Date.now().toString();
+    const newRec = { ...rec, id };
+    await db.recorrencias.add(newRec);
+    set(state => ({ recorrencias: [...state.recorrencias, newRec] }));
+    get().handleSyncData();
+  },
+
+  deleteRecurring: async (id) => {
+    await db.recorrencias.delete(id);
+    set(state => ({ recorrencias: state.recorrencias.filter(r => r.id !== id) }));
+    get().handleSyncData();
   },
 
   resetData: async () => {

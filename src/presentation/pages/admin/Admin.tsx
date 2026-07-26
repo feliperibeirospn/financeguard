@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, Plus, Trash2, Lock, LogIn, CreditCard, Sparkles, BrainCircuit } from 'lucide-react';
+import { Settings, Plus, Trash2, Lock, LogIn, CreditCard, Sparkles, BrainCircuit, CalendarCheck } from 'lucide-react';
 import { startDropboxAuth } from '../../../infrastructure/utils/dropboxOAuth';
 import type { Category } from '../../../domain/categories/entities/categories';
 import { useConfigStore } from '../../../application/state/useConfigStore';
@@ -16,13 +16,16 @@ export const AdminPage = () => {
   } = useConfigStore();
 
   const { categories, handleAddCategory, handleUpdateCategories, handleDeleteCategory } = useCategoryStore();
-  const { cartoes, addCard, deleteCard, resetData } = useTransactionStore();
+  const { cartoes, addCard, deleteCard, recorrencias, addRecurring, deleteRecurring, resetData } = useTransactionStore();
   const { showToast } = useUIStore();
 
   const [newTarget, setNewTarget] = useState(savingsTargetPct);
   const [editingCategory, setEditingCategory] = useState<Partial<Category> | null>(null);
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [cardForm, setCardForm] = useState({ nome: '', diaFechamento: 5, diaVencimento: 15, cor: '#6366f1' });
+
+  const [isAddingRecurring, setIsAddingRecurring] = useState(false);
+  const [recurringForm, setRecurringForm] = useState({ descricao: '', valor: '', categoria_id: categories[0]?.id || '', dia: 1 });
 
   const maskEmail = (email?: string) => {
     if (!email) return '';
@@ -36,6 +39,13 @@ export const AdminPage = () => {
     addCard(cardForm);
     setIsAddingCard(false);
     setCardForm({ nome: '', diaFechamento: 5, diaVencimento: 15, cor: '#6366f1' });
+  };
+
+  const onSaveRecurring = () => {
+    if (!recurringForm.descricao || !recurringForm.valor) return;
+    addRecurring({ ...recurringForm, valor: parseFloat(recurringForm.valor as string) });
+    setIsAddingRecurring(false);
+    setRecurringForm({ descricao: '', valor: '', categoria_id: categories[0]?.id || '', dia: 1 });
   };
 
   const onResetAll = () => {
@@ -130,10 +140,64 @@ export const AdminPage = () => {
               </div>
             </div>
           </div>
-          <div className="p-6 md:p-8 bg-slate-50 dark:bg-[#161c33]/50 rounded-3xl border border-dashed border-slate-200 dark:border-white/10 flex flex-col justify-center">
+          <div className="p-6 md:p-8 bg-slate-50 dark:bg-[#161c33]/50 rounded-[2.5rem] border border-dashed border-slate-200 dark:border-white/10 flex flex-col justify-center">
              <p className="text-[10px] md:text-[11px] text-dim leading-relaxed italic text-center font-medium">
                "Seus dados financeiros são processados com privacidade absoluta. As chaves de API nunca saem do seu controle."
              </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Contas Fixas / Recorrências */}
+      <section className="glass-card p-6 md:p-10 space-y-8">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic">Contas Fixas</h3>
+            <p className="text-[9px] md:text-[10px] text-indigo-500 font-black uppercase tracking-[0.3em] mt-1">Lançamentos Automáticos Mensais</p>
+          </div>
+          <div className="p-3 md:p-4 bg-indigo-500/10 text-indigo-500 rounded-2xl md:rounded-3xl border border-indigo-500/20 shrink-0">
+            <CalendarCheck className="size-6 md:size-8" />
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="flex justify-end">
+            <button onClick={() => setIsAddingRecurring(!isAddingRecurring)} className="btn-secondary py-3 px-6 text-[10px] flex items-center gap-3">
+              {isAddingRecurring ? 'Fechar' : <><Plus className="size-4 shrink-0" /> Nova Conta Fixa</>}
+            </button>
+          </div>
+          {isAddingRecurring && (
+            <div className="p-6 md:p-8 bg-slate-50 dark:bg-[#161c33] rounded-[2.5rem] border border-slate-200 dark:border-white/10 grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 animate-in zoom-in-95">
+              <input type="text" value={recurringForm.descricao} onChange={e => setRecurringForm({...recurringForm, descricao: e.target.value})} className="input-field h-14 md:h-16" placeholder="Ex: Aluguel" />
+              <input type="number" value={recurringForm.valor} onChange={e => setRecurringForm({...recurringForm, valor: e.target.value})} className="input-field text-center h-14 md:h-16" placeholder="Valor" />
+              <select
+                value={recurringForm.categoria_id}
+                onChange={e => setRecurringForm({...recurringForm, categoria_id: e.target.value})}
+                className="input-field h-14 md:h-16 appearance-none cursor-pointer font-bold"
+              >
+                {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>)}
+              </select>
+              <button onClick={onSaveRecurring} className="btn-primary h-14 md:h-16 text-[10px]">Agendar</button>
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            {recorrencias.map(rec => {
+              const cat = categories.find(c => c.id === rec.categoria_id);
+              return (
+                <div key={rec.id} className="p-6 md:p-8 bg-slate-50 dark:bg-[#161c33] rounded-3xl border border-slate-200 dark:border-white/5 flex items-center justify-between group hover:border-indigo-500/50 transition-all shadow-sm">
+                  <div className="flex items-center gap-4 md:gap-5 min-w-0">
+                    <div className="p-3 md:p-4 bg-white dark:bg-slate-800 rounded-2xl md:rounded-3xl border border-slate-100 dark:border-white/10 shadow-sm shrink-0">
+                      <span className="text-xl md:text-2xl">{cat?.icon || '📅'}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-black text-main text-base md:text-lg uppercase tracking-tighter leading-none mb-1 truncate">{rec.descricao}</h4>
+                      <p className="text-[11px] text-indigo-500 font-black">R$ {rec.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => deleteRecurring(rec.id)} className="text-dim hover:text-rose-500 p-2 md:p-3 hover:bg-rose-500/10 rounded-xl md:rounded-2xl transition-all shrink-0"><Trash2 className="size-4 md:size-5" /></button>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -158,7 +222,7 @@ export const AdminPage = () => {
               </button>
             </div>
             {isAddingCard && (
-              <div className="p-6 md:p-8 bg-slate-50 dark:bg-[#161c33] rounded-3xl border border-slate-200 dark:border-white/10 grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 animate-in zoom-in-95">
+              <div className="p-6 md:p-8 bg-slate-50 dark:bg-[#161c33] rounded-[2.5rem] border border-slate-200 dark:border-white/10 grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 animate-in zoom-in-95">
                 <input type="text" value={cardForm.nome} onChange={e => setCardForm({...cardForm, nome: e.target.value})} className="input-field h-14 md:h-16" placeholder="Nome" />
                 <input type="number" value={cardForm.diaFechamento} onChange={e => setCardForm({...cardForm, diaFechamento: Number(e.target.value)})} className="input-field text-center h-14 md:h-16" placeholder="Fechamento" />
                 <input type="number" value={cardForm.diaVencimento} onChange={e => setCardForm({...cardForm, diaVencimento: Number(e.target.value)})} className="input-field text-center h-14 md:h-16" placeholder="Vencimento" />
@@ -229,7 +293,7 @@ export const AdminPage = () => {
 
       <div className="pt-10 flex flex-col items-center">
         <button onClick={onResetAll} className="px-6 md:px-10 py-5 md:py-6 text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-dim hover:text-rose-500 transition-all border-2 border-transparent hover:border-rose-500/20 rounded-[2rem]">Zerar Banco de Dados</button>
-        <p className="text-[8px] md:text-[9px] text-dim/50 font-bold uppercase mt-4">Finance • v1.4.0 High-Impact UI</p>
+        <p className="text-[8px] md:text-[9px] text-dim/50 font-bold uppercase mt-4">Finance • v1.4.0 Elite UI</p>
       </div>
 
       {editingCategory && (

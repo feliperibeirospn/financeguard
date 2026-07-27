@@ -16,7 +16,11 @@ export const AdminPage = () => {
   } = useConfigStore();
 
   const { categories, handleAddCategory, handleUpdateCategories, handleDeleteCategory } = useCategoryStore();
-  const { cartoes, addCard, deleteCard, recorrencias, addRecurring, deleteRecurring, resetData } = useTransactionStore();
+  const {
+    cartoes, addCard, deleteCard,
+    recorrencias, addRecurring, deleteRecurring,
+    resetData, handleSyncData, loadData
+  } = useTransactionStore();
   const { showToast } = useUIStore();
 
   const [newTarget, setNewTarget] = useState(savingsTargetPct);
@@ -60,9 +64,18 @@ export const AdminPage = () => {
 
       {/* Sincronização */}
       <section className="glass-card p-6 md:p-10 space-y-8">
-        <div className="space-y-1">
-          <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic">Sincronização</h3>
-          <p className="text-[9px] md:text-[10px] text-indigo-500 font-black uppercase tracking-[0.3em]">Segurança em Nuvem</p>
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic">Sincronização</h3>
+            <p className="text-[9px] md:text-[10px] text-indigo-500 font-black uppercase tracking-[0.3em]">
+              {backupConfig?.lastCloudBackup
+                ? `Última nuvem: ${new Date(backupConfig.lastCloudBackup).toLocaleString('pt-BR')}`
+                : 'Segurança em Nuvem'}
+            </p>
+          </div>
+          <button onClick={resetData} className="p-3 bg-rose-500/10 text-rose-500 rounded-2xl border border-rose-500/20 active:scale-95 transition-all">
+             <Trash2 className="size-5" />
+          </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
@@ -74,17 +87,27 @@ export const AdminPage = () => {
             ) : (
               <p className="text-[10px] text-dim font-black mb-3 uppercase tracking-widest">Dropbox Desconectado</p>
             )}
-            <button onClick={startDropboxAuth} className="btn-primary py-4 md:py-5 flex items-center justify-center gap-3 text-xs">
+            <button onClick={startDropboxAuth} className="btn-primary py-4 md:py-5 flex items-center justify-center gap-3 text-xs mb-3">
               <LogIn className="size-4 md:size-5 shrink-0" /> {backupConfig?.dropboxToken ? 'Trocar Conta' : 'Vincular Dropbox'}
             </button>
+            {backupConfig?.dropboxToken && (
+               <button onClick={() => { handleSyncData(); showToast("Enviando para nuvem...", "success"); }} className="w-full py-3 bg-indigo-500/10 text-indigo-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500 hover:text-white transition-all">
+                  Forçar Upload Manual
+               </button>
+            )}
           </div>
 
           <div className="space-y-4 p-6 md:p-8 bg-slate-50 dark:bg-[#161c33] rounded-3xl border border-slate-200 dark:border-white/5">
             <label className="text-[10px] font-black text-dim uppercase tracking-[0.3em] ml-1 mb-2 block">Chave de Segurança</label>
-            <div className="relative">
+            <div className="relative mb-3">
               <input type="password" value={backupConfig?.backupPassword || ''} onChange={(e) => handleUpdateBackupConfig(undefined, e.target.value)} placeholder="Senha mestre..." className="input-field pl-12 md:pl-14 h-14 md:h-16 text-sm" />
               <Lock className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 size-4 md:size-5 text-indigo-500/50" />
             </div>
+            {backupConfig?.dropboxToken && (
+               <button onClick={() => { loadData(); showToast("Buscando dados...", "success"); }} className="w-full py-3 bg-emerald-500/10 text-emerald-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all">
+                  Baixar Agora da Nuvem
+               </button>
+            )}
           </div>
         </div>
       </section>

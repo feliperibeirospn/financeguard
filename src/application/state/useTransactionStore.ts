@@ -3,7 +3,6 @@ import { db } from '../../infrastructure/db/AppDatabase';
 import type { Transacao } from '../../domain/transactions/entities/Transacao';
 import type { Parcelamento } from '../../domain/transactions/entities/Parcelamento';
 import { useConfigStore } from './useConfigStore';
-import { useCategoryStore } from './useCategoryStore';
 import { backupData, restoreData } from '../services/BackupService';
 
 interface TransactionState {
@@ -33,6 +32,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
   isLoading: true,
 
   loadData: async () => {
+    // 1. Carrega dados locais imediatamente para não travar a UI
     const [txs, par, cards, rec] = await Promise.all([
       db.transacoes.toArray(),
       db.parcelamentos.toArray(),
@@ -41,10 +41,14 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     ]);
     set({ transactions: txs, parcelamentos: par, cartoes: cards, recorrencias: rec, isLoading: false });
 
+    // 2. Tenta baixar versão mais nova da nuvem se estiver configurado
     const { backupConfig, loadConfig } = useConfigStore.getState();
     if (backupConfig?.dropboxToken && backupConfig?.backupPassword) {
       try {
+        console.log('Verificando atualizações na nuvem...');
         await restoreData(backupConfig.dropboxToken, backupConfig.backupPassword);
+
+        // 3. Recarrega estado se o restore trouxe dados novos
         await loadConfig();
         const [ntxs, npar, ncards, nrec] = await Promise.all([
           db.transacoes.toArray(),
@@ -53,8 +57,9 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
           db.recorrencias.toArray()
         ]);
         set({ transactions: ntxs, parcelamentos: npar, cartoes: ncards, recorrencias: nrec });
+        console.log('Nuvem sincronizada com sucesso.');
       } catch (e) {
-        console.warn('Auto-restore silencioso falhou ou não há dados novos.');
+        console.warn('Auto-restore silencioso falhou ou nuvem está vazia.');
       }
     }
   },
@@ -70,24 +75,12 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
   },
 
   handleAddTransaction: async (input, isOnline) => {
-    const { handleAddCategory, categories } = useCategoryStore.getState();
-
-    if (input.newCategory) {
-      await handleAddCategory(input.newCategory);
-    }
-
     const id = Date.now().toString();
-    const cat = categories.find(c => c.id === input.category) || input.newCategory;
-    let finalAmount = input.amount;
-    if (cat && (cat.type === 'expense' || cat.type === 'investment') && finalAmount > 0) {
-      finalAmount = -finalAmount;
-    }
-
     const newTx: Transacao = {
       id,
       id_remoto: id,
       descricao: input.description || input.descricao || 'Sem descrição',
-      valor: finalAmount,
+      valor: input.amount,
       categoria_id: input.category,
       forma_pagamento: input.paymentMethod,
       data: input.date,
@@ -99,13 +92,13 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
 
     await db.transacoes.add(newTx);
     set((state) => ({ transactions: [newTx, ...state.transactions] }));
-    if (isOnline) get().handleSyncData();
+    if (isOnline) await get().handleSyncData();
   },
 
   handleDeleteTransaction: async (id) => {
     await db.transacoes.delete(id);
     set((state) => ({ transactions: state.transactions.filter(t => t.id !== id) }));
-    get().handleSyncData();
+    await get().handleSyncData();
   },
 
   handleApplyRecurring: async (month, year, isOnline) => {
@@ -132,7 +125,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     }
     const txs = await db.transacoes.toArray();
     set({ transactions: txs });
-    if (isOnline) get().handleSyncData();
+    if (isOnline) await get().handleSyncData();
   },
 
   addCard: async (card) => {
@@ -140,13 +133,13 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     const newCard = { ...card, id };
     await db.cartoes.add(newCard);
     set(state => ({ cartoes: [...state.cartoes, newCard] }));
-    get().handleSyncData();
+    await get().handleSyncData();
   },
 
   deleteCard: async (id) => {
     await db.cartoes.delete(id);
     set(state => ({ cartoes: state.cartoes.filter(c => c.id !== id) }));
-    get().handleSyncData();
+    await get().handleSyncData();
   },
 
   addRecurring: async (rec) => {
@@ -154,16 +147,17 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     const newRec = { ...rec, id };
     await db.recorrencias.add(newRec);
     set(state => ({ recorrencias: [...state.recorrencias, newRec] }));
-    get().handleSyncData();
+    await get().handleSyncData();
   },
 
   deleteRecurring: async (id) => {
     await db.recorrencias.delete(id);
     set(state => ({ recorrencias: state.recorrencias.filter(r => r.id !== id) }));
-    get().handleSyncData();
+    await get().handleSyncData();
   },
 
   resetData: async () => {
+    if (!confirm("Isso apagará TUDO localmente. O backup na nuvem permanecerá. Continuar?")) return;
     await Promise.all([
       db.transacoes.clear(),
       db.parcelamentos.clear(),

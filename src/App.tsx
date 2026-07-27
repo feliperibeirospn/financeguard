@@ -48,11 +48,12 @@ export default function App() {
   useEffect(() => {
     const init = async () => {
       await migrateFromLocalStorage();
-      await Promise.all([loadConfig(), loadCategories(), loadData()]);
+      await loadConfig(); // Carrega configurações primeiro para garantir token do Dropbox
+      await Promise.all([loadCategories(), loadData()]);
       setIsInitializing(false);
     };
     init();
-  }, []);
+  }, [loadConfig, loadCategories, loadData]);
 
   useEffect(() => {
     if (theme === 'dark') document.documentElement.classList.add('dark');

@@ -19,7 +19,6 @@ export const backupData = async (token: string, password: string) => {
     parcelamentos,
     recorrencias,
     cards,
-    // Backup das configurações sensíveis (IA e Metas)
     config: {
       savingsTargetPct: appConfig?.savingsTargetPct,
       enableCreditCardStatement: appConfig?.enableCreditCardStatement,
@@ -34,6 +33,7 @@ export const backupData = async (token: string, password: string) => {
 
   const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
     method: 'POST',
+    keepalive: true, // Garante que o upload termine mesmo se a aba fechar
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/octet-stream',
@@ -49,6 +49,19 @@ export const backupData = async (token: string, password: string) => {
   if (!response.ok) {
     const err = await response.json();
     throw new Error(err.error_summary || 'Erro no upload');
+  }
+
+  // Atualiza o timestamp do último backup bem-sucedido
+  const currentConfig = await db.appConfig.get('global');
+  if (currentConfig) {
+    await db.appConfig.put({
+      ...currentConfig,
+      backupConfig: {
+        ...(currentConfig.backupConfig || {}),
+        lastCloudBackup: new Date().toISOString()
+      },
+      id: 'global'
+    });
   }
 };
 

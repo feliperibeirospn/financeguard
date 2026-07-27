@@ -60,26 +60,26 @@ export const AdminPage = () => {
   };
 
   return (
-    <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+    <div className="space-y-6 md:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
 
       {/* Sincronização */}
       <section className="glass-card p-6 md:p-10 space-y-8">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic">Sincronização</h3>
-            <p className="text-[9px] md:text-[10px] text-indigo-500 font-black uppercase tracking-[0.3em]">
+            <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic leading-none">Sincronização</h3>
+            <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.3em]">
               {backupConfig?.lastCloudBackup
-                ? `Última nuvem: ${new Date(backupConfig.lastCloudBackup).toLocaleString('pt-BR')}`
+                ? `Cloud: ${new Date(backupConfig.lastCloudBackup).toLocaleTimeString('pt-BR')}`
                 : 'Segurança em Nuvem'}
             </p>
           </div>
-          <button onClick={resetData} className="p-3 bg-rose-500/10 text-rose-500 rounded-2xl border border-rose-500/20 active:scale-95 transition-all">
+          <button onClick={onResetAll} className="w-fit p-3 bg-rose-500/10 text-rose-500 rounded-2xl border border-rose-500/20 active:scale-95 transition-all">
              <Trash2 className="size-5" />
           </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
-          <div className="space-y-4 p-6 md:p-8 bg-slate-50 dark:bg-[#161c33] rounded-3xl border border-slate-200 dark:border-white/5 flex flex-col justify-center text-center">
+          <div className="space-y-4 p-6 md:p-8 bg-slate-50 dark:bg-[#111827] rounded-[2rem] border border-slate-200 dark:border-white/5 flex flex-col justify-center text-center">
             {backupConfig?.dropboxUserEmail ? (
               <p className="text-[10px] text-indigo-500 font-black mb-3 uppercase tracking-widest truncate px-2">
                 CONECTADO: <span className="text-main underline underline-offset-4">{maskEmail(backupConfig.dropboxUserEmail)}</span>
@@ -91,21 +91,21 @@ export const AdminPage = () => {
               <LogIn className="size-4 md:size-5 shrink-0" /> {backupConfig?.dropboxToken ? 'Trocar Conta' : 'Vincular Dropbox'}
             </button>
             {backupConfig?.dropboxToken && (
-               <button onClick={() => { handleSyncData(); showToast("Enviando para nuvem...", "success"); }} className="w-full py-3 bg-indigo-500/10 text-indigo-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500 hover:text-white transition-all">
-                  Forçar Upload Manual
+               <button onClick={() => { handleSyncData(); showToast("Enviando...", "success"); }} className="w-full py-3 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20">
+                  Sincronizar Manual
                </button>
             )}
           </div>
 
-          <div className="space-y-4 p-6 md:p-8 bg-slate-50 dark:bg-[#161c33] rounded-3xl border border-slate-200 dark:border-white/5">
-            <label className="text-[10px] font-black text-dim uppercase tracking-[0.3em] ml-1 mb-2 block">Chave de Segurança</label>
+          <div className="space-y-4 p-6 md:p-8 bg-slate-50 dark:bg-[#111827] rounded-[2rem] border border-slate-200 dark:border-white/5 flex flex-col justify-center">
+            <label className="text-[10px] font-black text-dim uppercase tracking-[0.3em] ml-1 mb-2 block text-center sm:text-left">Chave Mestra</label>
             <div className="relative mb-3">
-              <input type="password" value={backupConfig?.backupPassword || ''} onChange={(e) => handleUpdateBackupConfig(undefined, e.target.value)} placeholder="Senha mestre..." className="input-field pl-12 md:pl-14 h-14 md:h-16 text-sm" />
+              <input type="password" value={backupConfig?.backupPassword || ''} onChange={(e) => handleUpdateBackupConfig(undefined, e.target.value)} placeholder="Senha mestra..." className="input-field pl-12 md:pl-14 h-14 md:h-16 text-sm" />
               <Lock className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 size-4 md:size-5 text-indigo-500/50" />
             </div>
             {backupConfig?.dropboxToken && (
-               <button onClick={() => { loadData(); showToast("Buscando dados...", "success"); }} className="w-full py-3 bg-emerald-500/10 text-emerald-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all">
-                  Baixar Agora da Nuvem
+               <button onClick={() => { loadData(); showToast("Restaurando...", "success"); }} className="w-full py-3 bg-emerald-500/10 text-emerald-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all border border-emerald-500/20">
+                  Baixar Backup
                </button>
             )}
           </div>
@@ -113,11 +113,11 @@ export const AdminPage = () => {
       </section>
 
       {/* Inteligência Artificial */}
-      <section className="glass-card p-6 md:p-10 space-y-8">
+      <section className="glass-card p-6 md:p-10 space-y-10">
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-1 min-w-0">
-            <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic text-indigo-500 truncate">Inteligência Artificial</h3>
-            <p className="text-[9px] md:text-[10px] text-dim font-black uppercase tracking-[0.3em] truncate">Extração de dados e Insights</p>
+            <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic text-indigo-500 truncate leading-none">Inteligência Artificial</h3>
+            <p className="text-[10px] text-dim font-black uppercase tracking-[0.3em] truncate">Estrategista Digital</p>
           </div>
           <div className="p-3 md:p-4 bg-indigo-500/10 text-indigo-500 rounded-2xl md:rounded-3xl border border-indigo-500/20 shrink-0">
             <BrainCircuit className="size-6 md:size-8" />
@@ -128,29 +128,29 @@ export const AdminPage = () => {
           <div className="lg:col-span-2 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-dim uppercase tracking-[0.3em] ml-1 block">Motor de IA</label>
+                <label className="text-[10px] font-black text-dim uppercase tracking-[0.3em] ml-1 block">Provedor</label>
                 <select
                   value={aiConfig?.provider || 'gemini'}
                   onChange={(e) => handleUpdateAIConfig(e.target.value as any, aiConfig?.apiKey || '')}
                   className="input-field appearance-none cursor-pointer h-14 md:h-16 font-bold text-sm"
                 >
                   <option value="gemini">Google Gemini</option>
-                  <option value="groq">Groq (Llama 3.3)</option>
+                  <option value="groq">Groq (Llama 3)</option>
                   <option value="deepseek">DeepSeek Chat</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-dim uppercase tracking-[0.3em] ml-1 block">Status da IA</label>
+                <label className="text-[10px] font-black text-dim uppercase tracking-[0.3em] ml-1 block">Análise de IA</label>
                 <button
                   onClick={() => handleUpdateAIManageCategories(!aiManageCategories)}
-                  className={`w-full h-14 md:h-16 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${aiManageCategories ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' : 'bg-slate-50 dark:bg-[#161c33] text-dim border border-slate-200 dark:border-white/5'}`}
+                  className={`w-full h-14 md:h-16 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${aiManageCategories ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' : 'bg-slate-50 dark:bg-[#111827] text-dim border border-slate-200 dark:border-white/5'}`}
                 >
-                  {aiManageCategories ? 'Analista Ativado' : 'Aguardando'}
+                  {aiManageCategories ? 'Ativada' : 'Desativada'}
                 </button>
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-dim uppercase tracking-[0.3em] ml-1 block">Token de Acesso (API Key)</label>
+              <label className="text-[10px] font-black text-dim uppercase tracking-[0.3em] ml-1 block">API Token</label>
               <div className="relative">
                 <input
                   type="password"
@@ -163,20 +163,20 @@ export const AdminPage = () => {
               </div>
             </div>
           </div>
-          <div className="p-6 md:p-8 bg-slate-50 dark:bg-[#161c33]/50 rounded-[2.5rem] border border-dashed border-slate-200 dark:border-white/10 flex flex-col justify-center">
+          <div className="p-6 md:p-8 bg-slate-50 dark:bg-[#111827]/50 rounded-[2rem] border border-dashed border-slate-200 dark:border-white/10 flex flex-col justify-center">
              <p className="text-[10px] md:text-[11px] text-dim leading-relaxed italic text-center font-medium">
-               "Seus dados financeiros são processados com privacidade absoluta. As chaves de API nunca saem do seu controle."
+               "Sua privacidade é inviolável. Suas chaves de API nunca saem deste dispositivo."
              </p>
           </div>
         </div>
       </section>
 
-      {/* Contas Fixas / Recorrências */}
+      {/* Contas Fixas */}
       <section className="glass-card p-6 md:p-10 space-y-8">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic">Contas Fixas</h3>
-            <p className="text-[9px] md:text-[10px] text-indigo-500 font-black uppercase tracking-[0.3em] mt-1">Lançamentos Automáticos Mensais</p>
+            <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic leading-none">Fixos</h3>
+            <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.3em] mt-1">Lançamentos Mensais</p>
           </div>
           <div className="p-3 md:p-4 bg-indigo-500/10 text-indigo-500 rounded-2xl md:rounded-3xl border border-indigo-500/20 shrink-0">
             <CalendarCheck className="size-6 md:size-8" />
@@ -186,30 +186,26 @@ export const AdminPage = () => {
         <div className="space-y-6">
           <div className="flex justify-end">
             <button onClick={() => setIsAddingRecurring(!isAddingRecurring)} className="btn-secondary py-3 px-6 text-[10px] flex items-center gap-3">
-              {isAddingRecurring ? 'Fechar' : <><Plus className="size-4 shrink-0" /> Nova Conta Fixa</>}
+              {isAddingRecurring ? 'Fechar' : <><Plus className="size-4 shrink-0" /> Novo Agendamento</>}
             </button>
           </div>
           {isAddingRecurring && (
-            <div className="p-6 md:p-8 bg-slate-50 dark:bg-[#161c33] rounded-[2.5rem] border border-slate-200 dark:border-white/10 grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 animate-in zoom-in-95">
-              <input type="text" value={recurringForm.descricao} onChange={e => setRecurringForm({...recurringForm, descricao: e.target.value})} className="input-field h-14 md:h-16" placeholder="Ex: Aluguel" />
-              <input type="number" value={recurringForm.valor} onChange={e => setRecurringForm({...recurringForm, valor: e.target.value})} className="input-field text-center h-14 md:h-16" placeholder="Valor" />
-              <select
-                value={recurringForm.categoria_id}
-                onChange={e => setRecurringForm({...recurringForm, categoria_id: e.target.value})}
-                className="input-field h-14 md:h-16 appearance-none cursor-pointer font-bold"
-              >
+            <div className="p-6 md:p-8 bg-slate-50 dark:bg-[#111827] rounded-[2rem] border border-slate-200 dark:border-white/10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-in zoom-in-95">
+              <input type="text" value={recurringForm.descricao} onChange={e => setRecurringForm({...recurringForm, descricao: e.target.value})} className="input-field h-14 text-sm" placeholder="Nome" />
+              <input type="number" value={recurringForm.valor} onChange={e => setRecurringForm({...recurringForm, valor: e.target.value})} className="input-field text-center h-14 text-sm" placeholder="R$" />
+              <select value={recurringForm.categoria_id} onChange={e => setRecurringForm({...recurringForm, categoria_id: e.target.value})} className="input-field h-14 appearance-none cursor-pointer font-bold text-sm">
                 {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>)}
               </select>
-              <button onClick={onSaveRecurring} className="btn-primary h-14 md:h-16 text-[10px]">Agendar</button>
+              <button onClick={onSaveRecurring} className="btn-primary h-14 text-[10px]">Agendar</button>
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {recorrencias.map(rec => {
               const cat = categories.find(c => c.id === rec.categoria_id);
               return (
-                <div key={rec.id} className="p-6 md:p-8 bg-slate-50 dark:bg-[#161c33] rounded-3xl border border-slate-200 dark:border-white/5 flex items-center justify-between group hover:border-indigo-500/50 transition-all shadow-sm">
+                <div key={rec.id} className="p-6 md:p-8 bg-slate-50 dark:bg-[#111827] rounded-[2rem] border border-slate-200 dark:border-white/5 flex items-center justify-between group hover:border-indigo-500/50 transition-all shadow-sm">
                   <div className="flex items-center gap-4 md:gap-5 min-w-0">
-                    <div className="p-3 md:p-4 bg-white dark:bg-slate-800 rounded-2xl md:rounded-3xl border border-slate-100 dark:border-white/10 shadow-sm shrink-0">
+                    <div className="p-3 md:p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl md:rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm shrink-0">
                       <span className="text-xl md:text-2xl">{cat?.icon || '📅'}</span>
                     </div>
                     <div className="min-w-0">
@@ -217,7 +213,7 @@ export const AdminPage = () => {
                       <p className="text-[11px] text-indigo-500 font-black">R$ {rec.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
                   </div>
-                  <button onClick={() => deleteRecurring(rec.id)} className="text-dim hover:text-rose-500 p-2 md:p-3 hover:bg-rose-500/10 rounded-xl md:rounded-2xl transition-all shrink-0"><Trash2 className="size-4 md:size-5" /></button>
+                  <button onClick={() => deleteRecurring(rec.id)} className="text-dim hover:text-rose-500 p-2 md:p-3 transition-all shrink-0"><Trash2 className="size-5" /></button>
                 </div>
               );
             })}
@@ -229,11 +225,11 @@ export const AdminPage = () => {
       <section className="glass-card p-6 md:p-10 space-y-6 md:space-y-8">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic">Cartões</h3>
-            <p className="text-[9px] md:text-[10px] text-dim font-black uppercase tracking-[0.3em] mt-1 truncate">Gestão de faturas</p>
+            <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic leading-none">Cartões</h3>
+            <p className="text-[10px] text-dim font-black uppercase tracking-[0.3em] mt-1 truncate">Faturas Inteligentes</p>
           </div>
-          <button onClick={() => handleUpdateCreditCardConfig(!enableCreditCardStatement)} className={`px-4 md:px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${enableCreditCardStatement ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30' : 'bg-slate-50 dark:bg-[#161c33] text-dim border border-slate-200 dark:border-white/5'}`}>
-            {enableCreditCardStatement ? 'Ativado' : 'Inativo'}
+          <button onClick={() => handleUpdateCreditCardConfig(!enableCreditCardStatement)} className={`px-4 md:px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${enableCreditCardStatement ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30' : 'bg-slate-50 dark:bg-[#111827] text-dim border border-slate-200 dark:border-white/5'}`}>
+            {enableCreditCardStatement ? 'Ativado' : 'Desativado'}
           </button>
         </div>
 
@@ -245,24 +241,24 @@ export const AdminPage = () => {
               </button>
             </div>
             {isAddingCard && (
-              <div className="p-6 md:p-8 bg-slate-50 dark:bg-[#161c33] rounded-[2.5rem] border border-slate-200 dark:border-white/10 grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 animate-in zoom-in-95">
-                <input type="text" value={cardForm.nome} onChange={e => setCardForm({...cardForm, nome: e.target.value})} className="input-field h-14 md:h-16" placeholder="Nome" />
-                <input type="number" value={cardForm.diaFechamento} onChange={e => setCardForm({...cardForm, diaFechamento: Number(e.target.value)})} className="input-field text-center h-14 md:h-16" placeholder="Fechamento" />
-                <input type="number" value={cardForm.diaVencimento} onChange={e => setCardForm({...cardForm, diaVencimento: Number(e.target.value)})} className="input-field text-center h-14 md:h-16" placeholder="Vencimento" />
-                <button onClick={onSaveCard} className="btn-primary h-14 md:h-16 text-[10px]">Cadastrar</button>
+              <div className="p-6 md:p-8 bg-slate-50 dark:bg-[#111827] rounded-[2rem] border border-slate-200 dark:border-white/10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 animate-in zoom-in-95">
+                <input type="text" value={cardForm.nome} onChange={e => setCardForm({...cardForm, nome: e.target.value})} className="input-field h-14 text-sm" placeholder="Nome" />
+                <input type="number" value={cardForm.diaFechamento} onChange={e => setCardForm({...cardForm, diaFechamento: Number(e.target.value)})} className="input-field text-center h-14 text-sm" placeholder="Fecha" />
+                <input type="number" value={cardForm.diaVencimento} onChange={e => setCardForm({...cardForm, diaVencimento: Number(e.target.value)})} className="input-field text-center h-14 text-sm" placeholder="Vence" />
+                <button onClick={onSaveCard} className="btn-primary h-14 text-[10px]">Cadastrar</button>
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {cartoes.map(card => (
-                <div key={card.id} className="p-6 md:p-8 bg-slate-50 dark:bg-[#161c33] rounded-3xl border border-slate-200 dark:border-white/5 flex items-center justify-between group hover:border-indigo-500/50 transition-all shadow-sm">
+                <div key={card.id} className="p-6 md:p-8 bg-slate-50 dark:bg-[#111827] rounded-[2rem] border border-slate-200 dark:border-white/5 flex items-center justify-between group hover:border-indigo-500/50 transition-all shadow-sm">
                   <div className="flex items-center gap-4 md:gap-5 min-w-0">
-                    <div className="p-3 md:p-4 bg-white dark:bg-slate-800 rounded-2xl md:rounded-3xl border border-slate-100 dark:border-white/10 shadow-sm shrink-0"><CreditCard className="size-5 md:size-6 text-indigo-500" /></div>
+                    <div className="p-3 md:p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl md:rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm shrink-0"><CreditCard className="size-5 md:size-6 text-indigo-500" /></div>
                     <div className="min-w-0">
                       <h4 className="font-black text-main text-base md:text-lg uppercase tracking-tighter leading-none mb-1 truncate">{card.nome}</h4>
-                      <p className="text-[9px] md:text-[10px] text-dim font-black uppercase tracking-widest truncate">Fecha dia {card.diaFechamento}</p>
+                      <p className="text-[10px] text-dim font-black uppercase tracking-widest truncate">Fecha dia {card.diaFechamento}</p>
                     </div>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); deleteCard(card.id); }} className="text-dim hover:text-rose-500 p-2 md:p-3 hover:bg-rose-500/10 rounded-xl md:rounded-2xl transition-all shrink-0"><Trash2 className="size-4 md:size-5" /></button>
+                  <button onClick={(e) => { e.stopPropagation(); deleteCard(card.id); }} className="text-dim hover:text-rose-500 p-2 md:p-3 transition-all shrink-0"><Trash2 className="size-5" /></button>
                 </div>
               ))}
             </div>
@@ -270,35 +266,35 @@ export const AdminPage = () => {
         )}
       </section>
 
-      {/* Categorias e Metas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
-        <section className="glass-card p-6 md:p-10 space-y-6 md:space-y-8">
+      {/* Meta Mensal */}
+      <div className="grid grid-cols-1 gap-6 md:gap-10">
+        <section className="glass-card p-6 md:p-10 space-y-8">
           <div className="space-y-1">
-            <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic">Meta Mensal</h3>
-            <p className="text-[9px] md:text-[10px] text-dim font-black uppercase tracking-[0.3em]">Objetivo de Retenção</p>
+            <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic leading-none">Meta Mensal</h3>
+            <p className="text-[10px] text-dim font-black uppercase tracking-[0.3em]">Objetivo de Retenção</p>
           </div>
-          <div className="p-6 md:p-10 bg-slate-50 dark:bg-[#161c33] rounded-3xl md:rounded-[2.5rem] border border-slate-200 dark:border-white/5 space-y-6 md:space-y-8 shadow-inner">
-            <div className="flex items-center gap-6 md:gap-10">
-              <input type="range" min="0" max="100" value={newTarget} onChange={(e) => setNewTarget(Number(e.target.value))} className="flex-1 h-2 md:h-3 accent-indigo-500 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer" />
-              <span className="text-4xl md:text-5xl font-black text-indigo-500 tracking-tighter">{newTarget}%</span>
+          <div className="p-6 md:p-10 bg-slate-50 dark:bg-[#111827] rounded-[2rem] border border-slate-200 dark:border-white/5 space-y-6 md:space-y-8 shadow-inner flex flex-col items-center">
+            <div className="w-full flex flex-col items-center gap-6 md:gap-10">
+              <input type="range" min="0" max="100" value={newTarget} onChange={(e) => setNewTarget(Number(e.target.value))} className="w-full h-2 md:h-3 accent-indigo-500 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer" />
+              <span className="text-4xl md:text-7xl font-black text-indigo-500 tracking-tighter leading-none">{newTarget}%</span>
             </div>
-            <button onClick={() => handleUpdateSavingsTarget(newTarget)} className="btn-primary w-full h-16 md:h-20 text-xs md:text-sm">Atualizar Objetivo</button>
+            <button onClick={() => handleUpdateSavingsTarget(newTarget)} className="btn-primary w-full max-w-md h-16 md:h-20 text-xs md:text-sm">Atualizar Objetivo</button>
           </div>
         </section>
 
-        <section className="glass-card p-6 md:p-10 space-y-6 md:space-y-8">
+        <section className="glass-card p-6 md:p-10 space-y-8">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1 min-w-0">
-              <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic truncate">Categorias</h3>
-              <p className="text-[9px] md:text-[10px] text-dim font-black uppercase tracking-[0.3em] truncate">Organização de Fluxo</p>
+              <h3 className="font-black text-main text-xl md:text-2xl tracking-tighter uppercase italic leading-none truncate">Categorias</h3>
+              <p className="text-[10px] text-dim font-black uppercase tracking-[0.3em] truncate">Organização de Fluxo</p>
             </div>
             <button onClick={() => setEditingCategory({ id: `cat_${Date.now()}`, name: '', color: '#6366f1', icon: '📦', type: 'expense' })} className="p-4 md:p-5 bg-indigo-500 text-white rounded-2xl md:rounded-3xl hover:bg-indigo-400 transition-all shadow-xl shadow-indigo-500/20 active:scale-95 shrink-0"><Plus className="size-5 md:size-6" /></button>
           </div>
-          <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
             {categories.map((cat) => (
-              <div key={cat.id} className="flex items-center justify-between p-4 md:p-6 bg-slate-50 dark:bg-[#161c33] rounded-2xl md:rounded-[2.5rem] border border-slate-200 dark:border-white/5 hover:border-indigo-500/50 transition-all group shadow-sm">
+              <div key={cat.id} className="flex items-center justify-between p-4 md:p-6 bg-slate-50 dark:bg-[#111827] rounded-[2rem] border border-slate-200 dark:border-white/5 hover:border-indigo-500/50 transition-all group shadow-sm">
                 <div className="flex items-center gap-4 md:gap-5 min-w-0">
-                   <div className="text-2xl md:text-3xl p-3 md:p-4 bg-white dark:bg-slate-800 rounded-xl md:rounded-[1.4rem] border border-slate-100 dark:border-white/10 shadow-sm shrink-0">{cat.icon}</div>
+                   <div className="text-2xl md:text-3xl p-3 md:p-4 bg-slate-100 dark:bg-slate-800 rounded-xl md:rounded-[1.4rem] border border-slate-200 dark:border-white/10 shadow-sm shrink-0">{cat.icon}</div>
                    <div className="min-w-0">
                       <p className="text-xs md:text-sm font-black text-main uppercase tracking-tighter leading-none mb-1 truncate">{cat.name}</p>
                       <p className="text-[8px] md:text-[10px] text-dim font-black uppercase tracking-[0.2em] truncate">{cat.type}</p>
@@ -316,7 +312,7 @@ export const AdminPage = () => {
 
       <div className="pt-10 flex flex-col items-center">
         <button onClick={onResetAll} className="px-6 md:px-10 py-5 md:py-6 text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-dim hover:text-rose-500 transition-all border-2 border-transparent hover:border-rose-500/20 rounded-[2rem]">Zerar Banco de Dados</button>
-        <p className="text-[8px] md:text-[9px] text-dim/50 font-bold uppercase mt-4">Finance • v1.4.0 Elite UI</p>
+        <p className="text-[8px] md:text-[9px] text-dim/50 font-bold uppercase mt-4">Finance • v1.4.0 High-Impact UI</p>
       </div>
 
       {editingCategory && (
@@ -329,8 +325,8 @@ export const AdminPage = () => {
 
             <div className="space-y-6 md:space-y-8">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-dim uppercase tracking-[0.3em] ml-2">Nome amigável</label>
-                <input type="text" value={editingCategory.name} onChange={e => setEditingCategory({...editingCategory, name: e.target.value})} className="input-field text-lg md:text-xl h-16 md:h-20" placeholder="Ex: Alimentação" />
+                <label className="text-[10px] font-black text-sub uppercase tracking-[0.3em] ml-2">Nome amigável</label>
+                <input type="text" value={editingCategory.name} onChange={e => setEditingCategory({...editingCategory, name: e.target.value})} className="input-field text-lg md:text-xl h-16 md:h-20 text-sm" placeholder="Ex: Alimentação" />
               </div>
 
               <div className="grid grid-cols-2 gap-4 md:gap-8">
@@ -340,7 +336,7 @@ export const AdminPage = () => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-dim uppercase tracking-[0.3em] ml-2">Tipo de Fluxo</label>
-                  <select value={editingCategory.type} onChange={e => setEditingCategory({...editingCategory, type: e.target.value as any})} className="input-field h-16 md:h-20 appearance-none font-black uppercase tracking-widest text-xs md:text-sm">
+                  <select value={editingCategory.type} onChange={e => setEditingCategory({...editingCategory, type: e.target.value as any})} className="input-field h-16 md:h-20 appearance-none font-black uppercase tracking-widest text-[10px] md:text-sm">
                     <option value="income">Receita (+)</option>
                     <option value="expense">Despesa (-)</option>
                     <option value="investment">Investimento ($)</option>
@@ -349,8 +345,8 @@ export const AdminPage = () => {
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 md:gap-6 pt-4">
-              <button onClick={() => setEditingCategory(null)} className="btn-secondary h-16 md:h-20 text-xs md:text-sm order-2 sm:order-1">Cancelar</button>
-              <button onClick={() => { if (!editingCategory?.name) return; if (categories.find(c => c.id === editingCategory.id)) handleUpdateCategories(categories.map(c => c.id === editingCategory.id ? (editingCategory as Category) : c)); else handleAddCategory(editingCategory as Category); setEditingCategory(null); }} className="flex-1 btn-primary h-16 md:h-20 text-xs md:text-sm shadow-2xl order-1 sm:order-2">Confirmar</button>
+              <button onClick={() => setEditingCategory(null)} className="btn-secondary h-16 md:h-20 text-sm order-2 sm:order-1">Cancelar</button>
+              <button onClick={() => { if (!editingCategory?.name) return; if (categories.find(c => c.id === editingCategory.id)) handleUpdateCategories(categories.map(c => c.id === editingCategory.id ? (editingCategory as Category) : c)); else handleAddCategory(editingCategory as Category); setEditingCategory(null); }} className="flex-1 btn-primary h-16 md:h-20 text-sm shadow-2xl order-1 sm:order-2">Confirmar</button>
             </div>
           </div>
         </div>

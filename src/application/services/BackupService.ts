@@ -33,7 +33,7 @@ export const backupData = async (token: string, password: string) => {
 
   const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
     method: 'POST',
-    keepalive: true, // Garante que o upload termine mesmo se a aba fechar
+    keepalive: true,
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/octet-stream',
@@ -46,12 +46,15 @@ export const backupData = async (token: string, password: string) => {
     body: encrypted,
   });
 
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error_summary || 'Erro no upload');
+  if (response.status === 401) {
+    throw new Error('Sessão do Dropbox expirada. Reconecte nos Ajustes.');
   }
 
-  // Atualiza o timestamp do último backup bem-sucedido
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error_summary || 'Erro ao enviar para nuvem');
+  }
+
   const currentConfig = await db.appConfig.get('global');
   if (currentConfig) {
     await db.appConfig.put({
@@ -74,12 +77,16 @@ export const restoreData = async (token: string, password: string) => {
     },
   });
 
-  if (response.status === 409) return;
-  if (!response.ok) return;
+  if (response.status === 401) {
+    throw new Error('Sessão expirada. Reconecte o Dropbox.');
+  }
+
+  if (response.status === 409) return; // Sem arquivo ainda
+  if (!response.ok) throw new Error('Erro ao buscar dados na nuvem');
 
   const encrypted = await response.text();
   const data = decryptData(encrypted, password);
-  if (!data) return;
+  if (!data) throw new Error('Chave de Segurança incorreta.');
 
   await db.transaction('rw', [db.transacoes, db.categorias, db.parcelamentos, db.recorrencias, db.cartoes, db.appConfig], async () => {
     if (data.categories) {

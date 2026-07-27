@@ -48,7 +48,7 @@ export default function App() {
   useEffect(() => {
     const init = async () => {
       await migrateFromLocalStorage();
-      await loadConfig(); // Carrega configurações primeiro para garantir token do Dropbox
+      await loadConfig();
       await Promise.all([loadCategories(), loadData()]);
       setIsInitializing(false);
     };
@@ -128,16 +128,16 @@ export default function App() {
           <MobileMenu activeTab={activeTab} onChange={handleTabChange} />
         </header>
 
-        <div className="glass-panel p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 shadow-xl">
-          <div className="w-full md:w-auto flex justify-center">
+        <div className="glass-panel p-4 md:p-6 flex flex-col items-center justify-between gap-6 shadow-xl overflow-hidden">
+          <div className="w-full flex justify-center">
             <MonthYearPicker month={selectedMonth} year={selectedYear} onMonthChange={(m, y) => { setSelectedMonth(m); setSelectedYear(y); }} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3 w-full md:flex md:w-auto">
-            <button onClick={handleExportCSV} className="btn-secondary h-12 md:h-auto px-2 md:px-8 flex items-center justify-center gap-2 text-[10px]">
+          <div className="grid grid-cols-2 gap-3 w-full sm:w-auto">
+            <button onClick={handleExportCSV} className="btn-secondary h-14 md:h-auto px-2 md:px-8 flex items-center justify-center gap-2 text-[10px]">
               <Download className="size-4 shrink-0" /> <span>Exportar</span>
             </button>
-            <button onClick={() => setIsFormOpen(!isFormOpen)} className="btn-primary h-12 md:h-auto px-2 md:px-8 flex items-center justify-center gap-2 text-[10px]">
+            <button onClick={() => setIsFormOpen(!isFormOpen)} className="btn-primary h-14 md:h-auto px-2 md:px-8 flex items-center justify-center gap-2 text-[10px]">
               <PlusCircle className="size-4 shrink-0" /> <span>Lançamento</span>
             </button>
           </div>

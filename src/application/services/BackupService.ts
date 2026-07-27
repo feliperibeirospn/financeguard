@@ -1,9 +1,21 @@
 import { db } from '../../infrastructure/db/AppDatabase';
 import { encryptData, decryptData } from '../../infrastructure/utils/crypto';
+import { refreshDropboxToken } from '../../infrastructure/utils/dropboxOAuth';
+import { useConfigStore } from '../state/useConfigStore';
 
 const BACKUP_FILENAME = 'finance_guard_backup.enc';
 
-export const backupData = async (token: string, password: string) => {
+const handleRefresh = async () => {
+  const { backupConfig, handleUpdateBackupConfig } = useConfigStore.getState();
+  if (backupConfig?.dropboxRefreshToken) {
+    const newToken = await refreshDropboxToken(backupConfig.dropboxRefreshToken);
+    await handleUpdateBackupConfig(newToken);
+    return newToken;
+  }
+  return null;
+};
+
+export const backupData = async (token: string, password: string): Promise<void> => {
   const [txs, categories, parcelamentos, recorrencias, cards, appConfig] = await Promise.all([
     db.transacoes.toArray(),
     db.categorias.toArray(),
@@ -31,28 +43,37 @@ export const backupData = async (token: string, password: string) => {
 
   const encrypted = encryptData(payload, password);
 
-  const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
-    method: 'POST',
-    keepalive: true,
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/octet-stream',
-      'Dropbox-API-Arg': JSON.stringify({
-        path: `/${BACKUP_FILENAME}`,
-        mode: 'overwrite',
-        mute: true,
-      }),
-    },
-    body: encrypted,
-  });
+  const attemptUpload = async (currentToken: string): Promise<Response> => {
+    return fetch('https://content.dropboxapi.com/2/files/upload', {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        'Authorization': `Bearer ${currentToken}`,
+        'Content-Type': 'application/octet-stream',
+        'Dropbox-API-Arg': JSON.stringify({
+          path: `/${BACKUP_FILENAME}`,
+          mode: 'overwrite',
+          mute: true,
+        }),
+      },
+      body: encrypted,
+    });
+  };
+
+  let response = await attemptUpload(token);
 
   if (response.status === 401) {
-    throw new Error('Sessão do Dropbox expirada. Reconecte nos Ajustes.');
+    const newToken = await handleRefresh();
+    if (newToken) {
+      response = await attemptUpload(newToken);
+    } else {
+      throw new Error('Sessão expirada. Reconecte o Dropbox.');
+    }
   }
 
   if (!response.ok) {
     const err = await response.json();
-    throw new Error(err.error_summary || 'Erro ao enviar para nuvem');
+    throw new Error(err.error_summary || 'Erro no upload');
   }
 
   const currentConfig = await db.appConfig.get('global');
@@ -68,21 +89,30 @@ export const backupData = async (token: string, password: string) => {
   }
 };
 
-export const restoreData = async (token: string, password: string) => {
-  const response = await fetch('https://content.dropboxapi.com/2/files/download', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Dropbox-API-Arg': JSON.stringify({ path: `/${BACKUP_FILENAME}` }),
-    },
-  });
+export const restoreData = async (token: string, password: string): Promise<void> => {
+  const attemptDownload = async (currentToken: string): Promise<Response> => {
+    return fetch('https://content.dropboxapi.com/2/files/download', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${currentToken}`,
+        'Dropbox-API-Arg': JSON.stringify({ path: `/${BACKUP_FILENAME}` }),
+      },
+    });
+  };
+
+  let response = await attemptDownload(token);
 
   if (response.status === 401) {
-    throw new Error('Sessão expirada. Reconecte o Dropbox.');
+    const newToken = await handleRefresh();
+    if (newToken) {
+      response = await attemptDownload(newToken);
+    } else {
+      throw new Error('Sessão expirada. Reconecte o Dropbox.');
+    }
   }
 
-  if (response.status === 409) return; // Sem arquivo ainda
-  if (!response.ok) throw new Error('Erro ao buscar dados na nuvem');
+  if (response.status === 409) return;
+  if (!response.ok) return;
 
   const encrypted = await response.text();
   const data = decryptData(encrypted, password);

@@ -5,7 +5,7 @@ interface ConfigState extends Omit<AppConfig, 'id'> {
   isLoading: boolean;
   loadConfig: () => Promise<void>;
   updateConfig: (updates: Partial<Omit<AppConfig, 'id'>>) => Promise<void>;
-  handleUpdateBackupConfig: (token?: string, password?: string, appKey?: string) => Promise<void>;
+  handleUpdateBackupConfig: (token?: string, password?: string, appKey?: string, refreshToken?: string) => Promise<void>;
   handleUpdateAIConfig: (provider: any, apiKey: string) => Promise<void>;
   handleUpdateAIManageCategories: (active: boolean) => Promise<void>;
   handleUpdateSavingsTarget: (pct: number) => Promise<void>;
@@ -41,11 +41,10 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     set({ ...rest });
   },
 
-  handleUpdateBackupConfig: async (token, password, appKey) => {
+  handleUpdateBackupConfig: async (token, password, appKey, refreshToken) => {
     const { backupConfig } = get();
     let email = backupConfig?.dropboxUserEmail;
 
-    // Se um novo token foi fornecido, buscar o e-mail do usuário no Dropbox para deixar o "lastro"
     if (token) {
       try {
         const response = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
@@ -64,6 +63,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     const newBackupConfig = {
       ...(backupConfig || {}),
       ...(token !== undefined ? { dropboxToken: token } : {}),
+      ...(refreshToken !== undefined ? { dropboxRefreshToken: refreshToken } : {}),
       ...(password !== undefined ? { backupPassword: password } : {}),
       ...(appKey !== undefined ? { dropboxAppKey: appKey } : {}),
       ...(email !== undefined ? { dropboxUserEmail: email } : {}),

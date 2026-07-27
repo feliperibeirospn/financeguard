@@ -18,7 +18,7 @@ import { MonthYearPicker } from './presentation/components/ui/MonthYearPicker';
 import { NewTransactionForm } from './presentation/components/transactions/NewTransactionForm';
 import { MobileMenu } from './presentation/components/ui/navigation/MobileMenu';
 import { Toast } from './presentation/components/ui/feedback/Toast';
-import { getDropboxTokenFromUrl, extractToken } from './infrastructure/utils/dropboxOAuth';
+import { extractCode, exchangeCodeForToken } from './infrastructure/utils/dropboxOAuth';
 
 export default function App() {
   const navigate = useNavigate();
@@ -73,14 +73,18 @@ export default function App() {
     else if (tab === 'admin') navigate('/admin');
   };
 
+  // Dropbox Logic (Capacitor)
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      const sub = CapApp.addListener('appUrlOpen', (data) => {
-        if (data.url.includes('access_token')) {
-          const token = extractToken(data.url);
-          if (token) {
-            handleUpdateBackupConfig(token);
+      const sub = CapApp.addListener('appUrlOpen', async (data) => {
+        const code = extractCode(data.url);
+        if (code) {
+          try {
+            const tokens = await exchangeCodeForToken(code);
+            await handleUpdateBackupConfig(tokens.accessToken, undefined, undefined, tokens.refreshToken);
             setTimeout(() => { Browser.close(); }, 500);
+          } catch (e) {
+            console.error('Erro ao conectar permanentemente:', e);
           }
         }
       });
@@ -88,13 +92,21 @@ export default function App() {
     }
   }, [handleUpdateBackupConfig]);
 
+  // Dropbox Logic (Web / PWA)
   useEffect(() => {
-    const token = (window as any)._dbx_temp_token || getDropboxTokenFromUrl();
-    if (token) {
-      handleUpdateBackupConfig(token);
-      (window as any)._dbx_temp_token = null;
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
+    const handleCodeExchange = async () => {
+      const code = (window as any)._dbx_temp_code;
+      if (code) {
+        (window as any)._dbx_temp_code = null;
+        try {
+          const tokens = await exchangeCodeForToken(code);
+          await handleUpdateBackupConfig(tokens.accessToken, undefined, undefined, tokens.refreshToken);
+        } catch (e) {
+          console.error('Erro na troca de código web:', e);
+        }
+      }
+    };
+    handleCodeExchange();
   }, [handleUpdateBackupConfig]);
 
   if (isInitializing) {
@@ -114,7 +126,7 @@ export default function App() {
               <div className="p-3 bg-indigo-600 rounded-[1.2rem] shadow-xl shadow-indigo-600/30">
                 <Wallet className="text-white size-7 md:size-8" />
               </div>
-              <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic leading-none select-none">
+              <h1 className="text-2xl md:text-5xl font-black tracking-tighter uppercase italic leading-none select-none">
                 <span className="text-main transition-colors">Fin</span>
                 <span className="text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_15px_rgba(99,102,241,0.3)]">ance</span>
               </h1>
@@ -128,16 +140,16 @@ export default function App() {
           <MobileMenu activeTab={activeTab} onChange={handleTabChange} />
         </header>
 
-        <div className="glass-panel p-4 md:p-6 flex flex-col items-center justify-between gap-6 shadow-xl overflow-hidden">
-          <div className="w-full flex justify-center">
+        <div className="glass-panel p-4 md:p-6 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
+          <div className="w-full sm:w-auto flex justify-center">
             <MonthYearPicker month={selectedMonth} year={selectedYear} onMonthChange={(m, y) => { setSelectedMonth(m); setSelectedYear(y); }} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3 w-full sm:w-auto">
-            <button onClick={handleExportCSV} className="btn-secondary h-14 md:h-auto px-2 md:px-8 flex items-center justify-center gap-2 text-[10px]">
+          <div className="flex gap-3 w-full sm:w-auto justify-center">
+            <button onClick={handleExportCSV} className="btn-secondary h-12 px-4 md:px-8 flex items-center justify-center gap-2 text-[10px]">
               <Download className="size-4 shrink-0" /> <span>Exportar</span>
             </button>
-            <button onClick={() => setIsFormOpen(!isFormOpen)} className="btn-primary h-14 md:h-auto px-2 md:px-8 flex items-center justify-center gap-2 text-[10px]">
+            <button onClick={() => setIsFormOpen(!isFormOpen)} className="btn-primary h-12 px-4 md:px-8 flex items-center justify-center gap-2 text-[10px]">
               <PlusCircle className="size-4 shrink-0" /> <span>Lançamento</span>
             </button>
           </div>

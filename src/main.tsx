@@ -3,23 +3,25 @@ import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './presentation/routes';
-import { extractToken } from './infrastructure/utils/dropboxOAuth';
+import { extractCode } from './infrastructure/utils/dropboxOAuth';
 import './index.css';
 
-// CORREÇÃO PARA O RETORNO DO DROPBOX:
+// CORREÇÃO PARA O RETORNO DO DROPBOX (MODO PERMANENTE):
+const search = window.location.search;
 const hash = window.location.hash;
-if (hash.includes('access_token=')) {
-  const token = extractToken(hash);
-  if (token) {
-    (window as any)._dbx_temp_token = token;
 
-    // Recupera onde o usuário estava ou vai para admin por padrão se for retorno de token
-    const returnPath = sessionStorage.getItem('dropbox_return_path') || '#/admin';
-    sessionStorage.removeItem('dropbox_return_path');
+// O Dropbox pode retornar o 'code' na query string ou no hash dependendo do navegador
+const code = extractCode(search) || extractCode(hash);
 
-    // Redireciona para o path correto sem o token na URL
-    window.location.hash = returnPath;
-  }
+if (code) {
+  (window as any)._dbx_temp_code = code;
+
+  const returnPath = localStorage.getItem('dropbox_return_path') || '#/admin';
+  localStorage.removeItem('dropbox_return_path');
+
+  // Limpa a URL e mantém o usuário onde ele estava
+  window.location.search = '';
+  window.location.hash = returnPath;
 }
 
 const queryClient = new QueryClient({

@@ -19,6 +19,7 @@ export interface AppConfig {
   };
   backupConfig?: {
     dropboxToken?: string;
+    dropboxRefreshToken?: string; // CHAVE PERMANENTE
     dropboxAppKey?: string;
     dropboxUserEmail?: string;
     backupPassword?: string;

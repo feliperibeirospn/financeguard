@@ -11,22 +11,47 @@ export const useFinanceSummary = () => {
   const { selectedMonth, selectedYear } = useUIStore();
   const { enableCreditCardStatement } = useConfigStore();
 
-  const getBillingMonth = (dateStr: string, formaPagamento: string, cartaoId?: string | null) => {
-    if (!enableCreditCardStatement || formaPagamento !== 'cartao') return new Date(dateStr);
-    const card = cartaoId ? cartoes.find(c => c.id === cartaoId) : cartoes[0];
-    if (!card) return new Date(dateStr);
-    const date = new Date(dateStr);
-    const day = parseInt(dateStr.split('-')[2]);
-    if (day >= card.diaFechamento) {
-      return new Date(date.getFullYear(), date.getMonth() + 1, 1);
+  /**
+   * Determina em qual mês a transação deve ser contabilizada (Mês de Pagamento).
+   * Resolve o bug de fuso horário e a lógica de virada de fatura.
+   */
+  const getBillingDateInfo = (dateStr: string, formaPagamento: string, cartaoId?: string | null) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    // Nota: month na string é 1-based (1=Janeiro), subtraímos 1 para o padrão JS (0-based)
+    let billingMonth = month - 1;
+    let billingYear = year;
+
+    // Lógica especial apenas para Cartão de Crédito
+    if (enableCreditCardStatement && formaPagamento === 'cartao') {
+      const card = cartaoId ? cartoes.find(c => c.id === cartaoId) : cartoes[0];
+
+      if (card) {
+        // 1. Se comprou no dia do fechamento ou depois, vai para a fatura seguinte
+        if (day >= card.diaFechamento) {
+          billingMonth += 1;
+        }
+
+        // 2. Se o vencimento é no mês seguinte ao fechamento (ex: fecha 25, vence 05)
+        // Adicionamos mais um mês para cair no mês de PAGAMENTO real
+        if (card.diaVencimento < card.diaFechamento) {
+          billingMonth += 1;
+        }
+
+        // Ajuste de virada de ano
+        while (billingMonth > 11) {
+          billingMonth -= 12;
+          billingYear += 1;
+        }
+      }
     }
-    return date;
+
+    return { month: billingMonth, year: billingYear };
   };
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
-      const billingDate = getBillingMonth(t.data, t.forma_pagamento, t.cartao_id);
-      return billingDate.getMonth() === selectedMonth && billingDate.getFullYear() === selectedYear;
+      const billing = getBillingDateInfo(t.data, t.forma_pagamento, t.cartao_id);
+      return billing.month === selectedMonth && billing.year === selectedYear;
     });
   }, [transactions, selectedMonth, selectedYear, enableCreditCardStatement, cartoes]);
 
